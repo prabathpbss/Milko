@@ -145,7 +145,7 @@ export default function Farmers() {
                 {a}
               </button>
             ))}
-            <button className="btn btn-sm ml-auto text-zinc-300 hover:text-white" onClick={() => setSelected(new Set())}>
+            <button className="btn btn-sm ml-auto text-[#D4D4D8] hover:text-white" onClick={() => setSelected(new Set())}>
               <X className="h-3.5 w-3.5" /> Clear
             </button>
           </div>

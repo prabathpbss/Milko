@@ -65,5 +65,5 @@ src/
 ## Notes
 
 - Fully responsive: the sidebar becomes a drawer below 1024 px, tables scroll inside their cards, forms stack to one column on phones.
-- The map is a placeholder (`components/ui/FakeMap.tsx`). Swap in Leaflet + OpenStreetMap, Google Maps or Mapbox.
+- The map is a placeholder (`components/ui/FakeMap.tsx`). Swap in Leaflet + OpenStreetMap (no Google Maps).
 - Brand colour `#D71920` is the `brand` palette in `tailwind.config.js`.

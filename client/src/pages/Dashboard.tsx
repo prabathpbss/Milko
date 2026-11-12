@@ -22,10 +22,11 @@ import { Progress } from '@/components/ui/misc';
 import { alerts, approvals, centers, collectionTrend, regions, tankers, TODAY, type Center } from '@/data/mock';
 import { compact, num } from '@/lib/format';
 import { useAuth } from '@/context/AuthContext';
+import { useChartColors } from '@/lib/chartTheme';
 
 const series: { key: string; color: string }[] = [
   { key: 'North Central', color: '#D71920' },
-  { key: 'North Western', color: '#3F3F46' },
+  { key: 'North Western', color: '#8B8B94' },
   { key: 'Central', color: '#F59E0B' },
   { key: 'Eastern', color: '#0EA5E9' },
   { key: 'Uva', color: '#10B981' },
@@ -39,6 +40,7 @@ const alertStyle = {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const cc = useChartColors();
   const [region, setRegion] = useState('All regions');
   const [shift, setShift] = useState('Both shifts');
 
@@ -117,12 +119,12 @@ export default function Dashboard() {
                     </linearGradient>
                   ))}
                 </defs>
-                <CartesianGrid stroke="#E4E4E7" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#71717A' }} tickLine={false} axisLine={false} interval={4} />
-                <YAxis tick={{ fontSize: 11, fill: '#71717A' }} tickLine={false} axisLine={false} tickFormatter={compact} width={48} />
+                <CartesianGrid stroke={cc.grid} strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fill: cc.tick }} tickLine={false} axisLine={false} interval={4} />
+                <YAxis tick={{ fontSize: 11, fill: cc.tick }} tickLine={false} axisLine={false} tickFormatter={compact} width={48} />
                 <Tooltip
                   formatter={(v: number) => `${num(v)} L`}
-                  contentStyle={{ borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 12 }}
+                  contentStyle={cc.tooltip}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} iconType="circle" iconSize={8} />
                 {shownSeries.map((s) => (

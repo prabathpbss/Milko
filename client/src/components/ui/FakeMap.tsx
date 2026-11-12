@@ -21,7 +21,7 @@ const toneBg = {
 };
 
 /**
- * Placeholder map used until a map provider (Google Maps / Mapbox / Leaflet + OSM)
+ * Placeholder map used until a map provider (Leaflet + OpenStreetMap — not Google Maps)
  * is wired in. Marker positions are percentages of the box.
  */
 export default function FakeMap({

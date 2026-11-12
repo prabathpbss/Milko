@@ -18,7 +18,7 @@ export function Progress({
 }) {
   const pctValue = Math.min(100, Math.max(0, (value / max) * 100));
   const color = {
-    dark: 'bg-zinc-900',
+    dark: 'bg-[#18181B] dark:bg-[#E4E4E7]',
     brand: 'bg-brand-600',
     warning: 'bg-amber-500',
     success: 'bg-emerald-600',
@@ -63,7 +63,7 @@ export function Toggle({
     >
       <span
         className={clsx(
-          'inline-block h-5 w-5 rounded-full bg-white shadow transition-transform',
+          'inline-block h-5 w-5 rounded-full bg-[#fff] shadow transition-transform',
           checked ? 'translate-x-[22px]' : 'translate-x-0.5',
         )}
       />

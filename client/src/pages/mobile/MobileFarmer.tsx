@@ -26,7 +26,7 @@ export default function MobileFarmer() {
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
       <header className="flex items-center justify-between border-b border-zinc-200 bg-white px-4 py-3">
-        <img src={logo} alt="MILCO" className="h-8 w-auto" />
+        <img src={logo} alt="MILCO" className="h-9 w-auto rounded bg-[#fff] p-0.5" />
         <select aria-label="Language" className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs">
           <option>සිංහල</option>
           <option>தமிழ்</option>

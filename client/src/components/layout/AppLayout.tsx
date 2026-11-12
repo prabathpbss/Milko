@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useClickOutside } from '@/hooks/useClickOutside';
 import { notifications } from '@/data/mock';
 import { Avatar } from '@/components/ui/misc';
+import ThemeToggle from '@/components/ui/ThemeToggle';
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
@@ -17,7 +18,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         onClick={onNavigate}
         className="flex h-16 shrink-0 items-center gap-3 border-b border-zinc-100 px-5"
       >
-        <img src={logo} alt="MILCO" className="h-9 w-auto" />
+        <img src={logo} alt="MILCO" className="h-10 w-auto rounded-md bg-[#fff] p-1" />
         <span className="text-[11px] font-medium leading-tight text-zinc-500">
           Farmer &amp; Milk
           <br />
@@ -229,6 +230,7 @@ export default function AppLayout() {
                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
                 SAP B1 · synced 09:42
               </Link>
+              <ThemeToggle />
               <NotificationsMenu />
               <UserMenu />
             </div>

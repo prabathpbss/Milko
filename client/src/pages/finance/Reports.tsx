@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/Badge';
 import { centers, farmers, regions, type Farmer } from '@/data/mock';
 import { num } from '@/lib/format';
 import { useToast } from '@/context/ToastContext';
+import { useChartColors } from '@/lib/chartTheme';
 
 const catalog = [
   { group: 'Farmers', items: ['Farmer performance scorecard', 'Supplier reliability', 'Contract expiry', 'Compliance status'] },
@@ -30,6 +31,7 @@ const catalog = [
 
 export default function Reports() {
   const toast = useToast();
+  const cc = useChartColors();
   const [report, setReport] = useState(catalog[0].items[0]);
   const [region, setRegion] = useState('');
   const [period, setPeriod] = useState('Last 3 months');
@@ -129,10 +131,10 @@ export default function Reports() {
               <CardBody className="h-[260px] pl-1">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={histogram} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                    <CartesianGrid stroke="#E4E4E7" strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="band" tick={{ fontSize: 11, fill: '#71717A' }} tickLine={false} axisLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: '#71717A' }} tickLine={false} axisLine={false} width={44} />
-                    <Tooltip formatter={(v: number) => num(v)} contentStyle={{ borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 12 }} />
+                    <CartesianGrid stroke={cc.grid} strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="band" tick={{ fontSize: 11, fill: cc.tick }} tickLine={false} axisLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: cc.tick }} tickLine={false} axisLine={false} width={44} />
+                    <Tooltip formatter={(v: number) => num(v)} contentStyle={cc.tooltip} />
                     <Bar dataKey="farmers" name="Farmers" fill="#D71920" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -143,12 +145,12 @@ export default function Reports() {
               <CardBody className="h-[260px] pl-1">
                 <ResponsiveContainer width="100%" height="100%">
                   <ScatterChart margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
-                    <CartesianGrid stroke="#E4E4E7" strokeDasharray="3 3" />
-                    <XAxis type="number" dataKey="x" name="Reliability" unit="%" domain={[70, 100]} tick={{ fontSize: 11, fill: '#71717A' }} tickLine={false} />
-                    <YAxis type="number" dataKey="y" name="FAT" unit="%" domain={[3.2, 4.5]} tick={{ fontSize: 11, fill: '#71717A' }} tickLine={false} width={44} />
+                    <CartesianGrid stroke={cc.grid} strokeDasharray="3 3" />
+                    <XAxis type="number" dataKey="x" name="Reliability" unit="%" domain={[70, 100]} tick={{ fontSize: 11, fill: cc.tick }} tickLine={false} />
+                    <YAxis type="number" dataKey="y" name="FAT" unit="%" domain={[3.2, 4.5]} tick={{ fontSize: 11, fill: cc.tick }} tickLine={false} width={44} />
                     <ZAxis type="number" dataKey="z" range={[60, 600]} name="L / day" />
-                    <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 12 }} />
-                    <Scatter data={scatter} fill="#18181B" fillOpacity={0.7} />
+                    <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={cc.tooltip} />
+                    <Scatter data={scatter} fill={cc.ink} fillOpacity={0.7} />
                   </ScatterChart>
                 </ResponsiveContainer>
               </CardBody>

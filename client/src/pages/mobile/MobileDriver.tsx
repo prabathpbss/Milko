@@ -35,7 +35,7 @@ export default function MobileDriver() {
           <h1 className="text-lg font-semibold">Route {base.route}</h1>
           <span className="rounded-full bg-amber-400/20 px-2.5 py-1 text-xs font-medium text-amber-200">{base.delayMin} min late</span>
         </div>
-        <p className="mt-1 text-sm text-zinc-400">
+        <p className="mt-1 text-sm text-[#A1A1AA]">
           {base.plate} · {base.driver} · started {base.departed}
         </p>
       </header>

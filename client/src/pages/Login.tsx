@@ -5,8 +5,11 @@ import { Eye, EyeOff, Lock, Milk, ShieldCheck, Smartphone, Truck } from 'lucide-
 import logo from '@/assets/milco-logo.jpg';
 import { useAuth } from '@/context/AuthContext';
 import { Field } from '@/components/ui/Field';
+import ThemeToggle from '@/components/ui/ThemeToggle';
 
 type Mode = 'staff' | 'field';
+
+const DEMO_ADMIN = { username: 'admin', password: 'Admin@123' };
 
 export default function Login() {
   const { user, login } = useAuth();
@@ -15,8 +18,9 @@ export default function Login() {
   const from = (location.state as { from?: string } | null)?.from ?? '/';
 
   const [mode, setMode] = useState<Mode>('staff');
-  const [username, setUsername] = useState('n.perera@milco.lk');
-  const [password, setPassword] = useState('');
+  // Demo admin account, pre-filled for testing. Remove before go-live.
+  const [username, setUsername] = useState(DEMO_ADMIN.username);
+  const [password, setPassword] = useState(DEMO_ADMIN.password);
   const [showPw, setShowPw] = useState(false);
   const [mobile, setMobile] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -44,8 +48,10 @@ export default function Login() {
     window.setTimeout(() => {
       login(
         mode === 'staff'
-          ? { name: 'Nadeesha Perera', email: username, role: 'Finance manager', scope: 'All regions' }
-          : { name: 'K. Dissanayake', email: mobile, role: 'Field officer', scope: 'Hingurakgoda CC' },
+          ? username.trim().toLowerCase() === DEMO_ADMIN.username
+            ? { name: 'System Admin', email: 'admin@milco.lk', role: 'System admin', scope: 'All regions' }
+            : { name: 'Nadeesha Perera', email: username, role: 'Finance manager', scope: 'All regions' }
+          :{ name: 'K. Dissanayake', email: mobile, role: 'Field officer', scope: 'Hingurakgoda CC' },
       );
       navigate(mode === 'field' ? '/mobile/collect' : from, { replace: true });
     }, 500);
@@ -60,7 +66,7 @@ export default function Login() {
           className="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-brand-600 opacity-60"
         />
         <div aria-hidden className="absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-brand-800 opacity-70" />
-        <div className="relative inline-flex w-fit rounded-2xl bg-white p-4 shadow-lg">
+        <div className="relative inline-flex w-fit rounded-2xl bg-[#fff] p-4 shadow-lg">
           <img src={logo} alt="MILCO" className="h-16 w-auto" />
         </div>
         <div className="relative max-w-md">
@@ -91,20 +97,23 @@ export default function Login() {
       {/* Form */}
       <section className="flex flex-1 items-center justify-center px-4 py-10 sm:px-8">
         <div className="w-full max-w-[400px]">
-          <img src={logo} alt="MILCO" className="mb-8 h-14 w-auto lg:hidden" />
+          <img src={logo} alt="MILCO" className="mb-8 h-16 w-auto rounded-lg bg-[#fff] p-2 lg:hidden" />
           <div className="mb-6 flex items-start justify-between gap-4">
             <div>
               <h2 className="text-2xl font-semibold tracking-tight">Sign in</h2>
               <p className="mt-1 text-sm text-zinc-500">Use your MILCO account.</p>
             </div>
-            <label>
-              <span className="sr-only">Language</span>
-              <select className="input h-9 w-auto pr-8 text-xs" defaultValue="en">
-                <option value="en">English</option>
-                <option value="si">සිංහල</option>
-                <option value="ta">தமிழ்</option>
-              </select>
-            </label>
+            <div className="flex items-center gap-1">
+              <ThemeToggle />
+              <label>
+                <span className="sr-only">Language</span>
+                <select className="input h-9 w-auto pr-8 text-xs" defaultValue="en">
+                  <option value="en">English</option>
+                  <option value="si">සිංහල</option>
+                  <option value="ta">தமிழ்</option>
+                </select>
+              </label>
+            </div>
           </div>
 
           <div role="tablist" className="mb-6 grid grid-cols-2 rounded-lg bg-zinc-100 p-1">
@@ -247,6 +256,13 @@ export default function Login() {
               </button>
             )}
           </form>
+
+          {mode === 'staff' && (
+            <p className="mt-6 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+              Demo admin: <span className="num font-medium text-zinc-900">{DEMO_ADMIN.username}</span> /{' '}
+              <span className="num font-medium text-zinc-900">{DEMO_ADMIN.password}</span>
+            </p>
+          )}
 
           <p className="mt-8 text-xs leading-relaxed text-zinc-500">
             After 5 failed attempts the account locks for 15 minutes. Two-step verification is required for Finance and

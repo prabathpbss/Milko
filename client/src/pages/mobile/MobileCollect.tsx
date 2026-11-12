@@ -49,7 +49,7 @@ export default function MobileCollect() {
             <WifiOff className="h-3.5 w-3.5" /> Offline · {pending} to upload
           </span>
         </div>
-        <p className="mt-1 text-sm text-zinc-400">Hingurakgoda CC · Morning · {count} today</p>
+        <p className="mt-1 text-sm text-[#A1A1AA]">Hingurakgoda CC · Morning · {count} today</p>
       </header>
 
       <main className="flex-1 space-y-4 overflow-y-auto p-4">

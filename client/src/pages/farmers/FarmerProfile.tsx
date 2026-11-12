@@ -33,13 +33,15 @@ import {
 } from '@/data/mock';
 import { lkr, num } from '@/lib/format';
 import { useToast } from '@/context/ToastContext';
+import { useChartColors } from '@/lib/chartTheme';
 
 type TabId = 'overview' | 'supply' | 'payments' | 'deductions' | 'compliance' | 'documents' | 'audit';
 
 export default function FarmerProfile() {
   const { id } = useParams();
   const toast = useToast();
-  const farmer = farmerById(id) ?? farmers[0];
+  const cc = useChartColors();
+  const farmer =farmerById(id) ?? farmers[0];
   const [tab, setTab] = useState<TabId>('overview');
   const [dedOpen, setDedOpen] = useState(false);
   const [deductions, setDeductions] = useState(farmerDeductions);
@@ -52,15 +54,15 @@ export default function FarmerProfile() {
   const chart = (
     <ResponsiveContainer width="100%" height="100%">
       <ComposedChart data={series} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-        <CartesianGrid stroke="#E4E4E7" strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#71717A' }} tickLine={false} axisLine={false} interval={6} />
-        <YAxis yAxisId="l" tick={{ fontSize: 11, fill: '#71717A' }} tickLine={false} axisLine={false} width={36} />
-        <YAxis yAxisId="q" orientation="right" domain={[3, 9]} tick={{ fontSize: 11, fill: '#71717A' }} tickLine={false} axisLine={false} width={30} />
-        <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 12 }} />
+        <CartesianGrid stroke={cc.grid} strokeDasharray="3 3" vertical={false} />
+        <XAxis dataKey="date" tick={{ fontSize: 11, fill: cc.tick }} tickLine={false} axisLine={false} interval={6} />
+        <YAxis yAxisId="l" tick={{ fontSize: 11, fill: cc.tick }} tickLine={false} axisLine={false} width={36} />
+        <YAxis yAxisId="q" orientation="right" domain={[3, 9]} tick={{ fontSize: 11, fill: cc.tick }} tickLine={false} axisLine={false} width={30} />
+        <Tooltip contentStyle={cc.tooltip} />
         <Legend wrapperStyle={{ fontSize: 12 }} iconType="circle" iconSize={8} />
-        <Bar yAxisId="l" dataKey="litres" name="Litres per shift" fill="#D4D4D8" radius={[3, 3, 0, 0]} />
+        <Bar yAxisId="l" dataKey="litres" name="Litres per shift" fill={cc.muted} radius={[3, 3, 0, 0]} />
         <Line yAxisId="q" type="monotone" dataKey="fat" name="FAT %" stroke="#D71920" strokeWidth={2} dot={false} />
-        <Line yAxisId="q" type="monotone" dataKey="snf" name="SNF %" stroke="#18181B" strokeWidth={2} dot={false} />
+        <Line yAxisId="q" type="monotone" dataKey="snf" name="SNF %" stroke={cc.ink} strokeWidth={2} dot={false} />
       </ComposedChart>
     </ResponsiveContainer>
   );
