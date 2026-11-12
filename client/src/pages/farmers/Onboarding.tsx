@@ -1,12 +1,12 @@
 import { useState, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, CheckCircle2, Crosshair, Send, UploadCloud } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Send, UploadCloud } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Field, FormGrid } from '@/components/ui/Field';
 import Stepper from '@/components/ui/Stepper';
 import { StatusBadge } from '@/components/ui/Badge';
-import FakeMap from '@/components/ui/FakeMap';
+import AttachmentGrid, { type Attachment } from '@/components/ui/AttachmentGrid';
 import { KeyValue } from '@/components/ui/misc';
 import { centers, routes } from '@/data/mock';
 import { useToast } from '@/context/ToastContext';
@@ -22,6 +22,7 @@ const initial: Record<string, string> = {
   language: 'Sinhala',
   address: 'No. 18, Yaya 4, Hingurakgoda',
   district: 'Polonnaruwa',
+  farmAddress: 'No. 18, Yaya 4, Hingurakgoda, Polonnaruwa',
   center: 'CC-HNG',
   route: 'R-07',
   land: '2.0',
@@ -60,6 +61,7 @@ export default function Onboarding() {
   const [docs, setDocs] = useState<Record<string, string>>({ nic: 'NIC_Dilani.pdf', land: 'Lease_Yaya4.pdf' });
   const [checks, setChecks] = useState({ duplicate: true, visit: true, bank: false, sample: false });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   const set = (k: string) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -203,14 +205,23 @@ export default function Onboarding() {
                     </select>
                   </Field>
                 </FormGrid>
+                <Field label="Farm location (address)" hint="House no., road, village / GN division, nearest town">
+                  <textarea
+                    className="input min-h-[88px] py-2"
+                    rows={3}
+                    value={form.farmAddress}
+                    onChange={set('farmAddress')}
+                    placeholder="e.g. No. 18, Yaya 4, Hingurakgoda, Polonnaruwa"
+                  />
+                </Field>
                 <div>
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="label">Farm location</span>
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => toast('Location captured from GPS: 7.9611, 80.9902')}>
-                      <Crosshair className="h-3.5 w-3.5" /> Use my location
-                    </button>
-                  </div>
-                  <FakeMap height={200} caption="Tap the map to move the pin" markers={[{ id: 'farm', x: 54, y: 40, label: 'Farm', kind: 'center' }]} />
+                  <span className="label mb-2 block">Farm photos & attachments</span>
+                  <AttachmentGrid
+                    value={attachments}
+                    onChange={setAttachments}
+                    hint="Shed, herd, water source, land documents"
+                    onReject={(m) => toast(m, 'error')}
+                  />
                 </div>
               </>
             )}
@@ -306,7 +317,7 @@ export default function Onboarding() {
               <div className="grid gap-6 lg:grid-cols-2">
                 {[
                   { title: 'Personal', items: [['Name', form.fullName], ['NIC', form.nic], ['Mobile', form.mobile], ['Language', form.language], ['Address', form.address]] },
-                  { title: 'Farm', items: [['Center', centers.find((c) => c.id === form.center)?.name ?? ''], ['Route', form.route], ['Herd', `${form.cattle} cattle, ${form.milking} milking`], ['Expected', `${form.expected} L / day`]] },
+                  { title: 'Farm', items: [['Center', centers.find((c) => c.id === form.center)?.name ?? ''], ['Route', form.route], ['Herd', `${form.cattle} cattle, ${form.milking} milking`], ['Expected', `${form.expected} L / day`], ['Location', form.farmAddress || '—'], ['Attachments', `${attachments.length} file(s)`]] },
                   { title: 'Bank', items: [['Method', form.payMethod], ['Bank', `${form.bank}, ${form.branch}`], ['Account', form.account || '—'], ['Holder', form.accountName]] },
                   { title: 'Contract', items: [['Template', form.template], ['Category', form.category], ['Valid', `${form.validFrom} to ${form.validTo}`], ['Documents', `${docsDone} of ${docList.length}`]] },
                 ].map((s) => (
