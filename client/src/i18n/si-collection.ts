@@ -182,7 +182,7 @@ export const si_collection: Record<string, string> = {
   'Society secretary': 'සමිති ලේකම්',
   'Field officer': 'ක්ෂේත්‍ර නිලධාරී',
   You: 'ඔබ',
-  System: 'පද්ධතිය',
+  'System (automatic)': 'පද්ධතිය',
 
   /* Collection exceptions (sample data) */
   'FAT 2.85, SNF 7.62, water suspected': 'FAT 2.85, SNF 7.62, ජලය මිශ්‍ර කළ බවට සැකයි',

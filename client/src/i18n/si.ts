@@ -18,6 +18,7 @@ export const si: Record<string, string> = {
   ...si_admin,
 
   /* ───── Shared components ───── */
+  Breadcrumb: 'මාර්ග සලකුණ',
   '{n} h over': 'පැය {n}ක් ඉක්මවා',
   '{n} h left': 'පැය {n}ක් ඉතිරියි',
   Light: 'ආලෝකමත්',

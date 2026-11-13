@@ -165,7 +165,7 @@ export const si_finance: Record<string, string> = {
   'All documents verified and the first milk sample passed. Approval creates the ERP vendor record.':
     'සියලු ලේඛන තහවුරු කර ඇති අතර පළමු කිරි සාම්පලය සමත් විය. අනුමත කළ විට ERP සැපයුම්කරු වාර්තාව සෑදේ.',
   'Recover over 5 periods. Farmer reliability 91%, no open advances.':
-    'කාල 5ක් තුළ අය කර ගැනේ. ගොවියාගේ විශ්වාසනීයත්වය 91%, ඉතිරි අත්තිකාරම් නැත.',
+    'කාල 5ක් තුළ අය කර ගැනේ. ගොවියාගේ විශ්වසනීයත්වය 91%, ඉතිරි අත්තිකාරම් නැත.',
   'Proposed credit of Rs 18,400 for the short-weighed delivery on 10 Nov.':
     '10 Nov බර අඩුවෙන් සටහන් වූ භාරදීම සඳහා යෝජිත බැර මුදල Rs 18,400.',
   'Litres changed 22.5 → 25.0 for MF-007120. Scale ticket attached.':
@@ -231,20 +231,20 @@ export const si_finance: Record<string, string> = {
   '{report} exported as PDF': '{report} PDF ලෙස අපනයනය කළා',
   '{report} exported to Excel': '{report} Excel වෙත අපනයනය කළා',
   'Data as of {time}': '{time} දක්වා දත්ත',
-  Period: 'කාලය',
+  Period: 'කාල සීමාව',
   'This payment period': 'මෙම ගෙවීම් කාලය',
   'Last 3 months': 'පසුගිය මාස 3',
   'Last 12 months': 'පසුගිය මාස 12',
   'Custom range…': 'අභිමත කාල පරාසය…',
   'Score distribution': 'ලකුණු ව්‍යාප්තිය',
   'Farmers by performance score': 'කාර්ය සාධන ලකුණු අනුව ගොවීන්',
-  'Reliability vs quality': 'විශ්වාසනීයත්වය සහ ගුණාත්මකභාවය',
+  'Reliability vs quality': 'විශ්වසනීයත්වය සහ ගුණාත්මකභාවය',
   'Bubble size = average litres per day': 'බුබුලේ ප්‍රමාණය = දිනකට සාමාන්‍ය ලීටර්',
-  Reliability: 'විශ්වාසනීයත්වය',
+  Reliability: 'විශ්වසනීයත්වය',
   'L / day': 'L / දිනකට',
   'Farmer scorecard': 'ගොවි ලකුණු පත්‍රය',
   'Score = 40% quality + 35% reliability + 25% volume against contract':
-    'ලකුණු = ගුණාත්මකභාවය 40% + විශ්වාසනීයත්වය 35% + ගිවිසුමට එදිරිව ප්‍රමාණය 25%',
+    'ලකුණු = ගුණාත්මකභාවය 40% + විශ්වසනීයත්වය 35% + ගිවිසුමට එදිරිව ප්‍රමාණය 25%',
   'Scorecard downloaded': 'ලකුණු පත්‍රය බාගත කළා',
   'Litres (90 d)': 'ලීටර් (දින 90)',
   Score: 'ලකුණු',
@@ -252,7 +252,7 @@ export const si_finance: Record<string, string> = {
   /* Report catalog */
   Audit: 'විගණනය',
   'Farmer performance scorecard': 'ගොවි කාර්ය සාධන ලකුණු පත්‍රය',
-  'Supplier reliability': 'සැපයුම්කරු විශ්වාසනීයත්වය',
+  'Supplier reliability': 'සැපයුම්කරු විශ්වසනීයත්වය',
   'Contract expiry': 'ගිවිසුම් කල් ඉකුත්වීම',
   'Compliance status': 'අනුකූලතා තත්ත්වය',
   'Milk volume by center': 'මධ්‍යස්ථානය අනුව කිරි ප්‍රමාණය',

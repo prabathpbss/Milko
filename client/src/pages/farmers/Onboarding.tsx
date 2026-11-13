@@ -227,7 +227,7 @@ export default function Onboarding() {
                   />
                 </Field>
                 <div>
-                  <span className="label mb-2 block">Farm photos & attachments</span>
+                  <span className="label mb-2 block">{t('Farm photos & attachments')}</span>
                   <AttachmentGrid
                     value={attachments}
                     onChange={setAttachments}

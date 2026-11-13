@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
+import { useLang } from '@/i18n/LanguageContext';
 
 export default function PageHeader({
   title,
@@ -13,11 +14,12 @@ export default function PageHeader({
   breadcrumb?: { label: string; to?: string }[];
   actions?: ReactNode;
 }) {
+  const { t } = useLang();
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
         {breadcrumb && (
-          <nav aria-label="Breadcrumb" className="mb-1 flex flex-wrap items-center gap-1 text-xs text-zinc-500">
+          <nav aria-label={t("Breadcrumb")} className="mb-1 flex flex-wrap items-center gap-1 text-xs text-zinc-500">
             {breadcrumb.map((b, i) => (
               <Fragment key={b.label}>
                 {i > 0 && <ChevronRight className="h-3 w-3" />}

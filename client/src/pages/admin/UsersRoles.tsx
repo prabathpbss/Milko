@@ -21,17 +21,35 @@ import {
 } from '@/data/access';
 import { num } from '@/lib/format';
 import { useToast } from '@/context/ToastContext';
+import { useLang } from '@/i18n/LanguageContext';
 
 type TabId = 'users' | 'roles';
+type T = ReturnType<typeof useLang>['t'];
 
+/** English keys; translated with t() at render. */
 const SIGN_IN_TEXT: Record<AppUser['signIn'], string> = {
   SSO: 'Company account (SSO)',
   Password: 'Email and password',
   'Mobile OTP': 'Mobile number + SMS code',
 };
 
+/** Last-active text from data: "2 min ago", "1 h ago", "3 days ago", "Yesterday", "Today" or a time. */
+function lastActiveText(v: string, t: T) {
+  const m = /^(\d+) (min|h|days?) ago$/.exec(v);
+  if (m) return t(m[2] === 'min' ? '{n} min ago' : m[2] === 'h' ? '{n} h ago' : '{n} days ago', { n: m[1] });
+  return v === 'Yesterday' || v === 'Today' ? t(v) : v;
+}
+
+/** Device text from data: "Samsung A15 · bound" or "Binds on first sign-in". */
+function deviceText(v: string, t: T) {
+  const m = /^(.*) · bound$/.exec(v);
+  if (m) return t('{device} · bound', { device: m[1] });
+  return v === 'Binds on first sign-in' ? t(v) : v;
+}
+
 export default function UsersRoles() {
   const toast = useToast();
+  const { t } = useLang();
   const navigate = useNavigate();
   const users = useUsers();
   const roles = useRoleMaster();
@@ -49,9 +67,14 @@ export default function UsersRoles() {
   const scope = scopes.some((s) => s.name === newUser.scope) ? newUser.scope : scopes[0]?.name ?? '';
 
   const shown = useMemo(() => {
-    const t = q.trim().toLowerCase();
-    return users.filter((u) => !t || [u.name, u.email, u.role, u.scope].some((v) => v.toLowerCase().includes(t)));
+    const term = q.trim().toLowerCase();
+    return users.filter((u) => !term || [u.name, u.email, u.role, u.scope].some((v) => v.toLowerCase().includes(term)));
   }, [q, users]);
+
+  /** Seeded company-wide scope names are translated; region/center/route names stay as they are. */
+  const scopeName = (n: string) => (n === 'All regions' || n === 'All' ? t(n) : n);
+  const approvalLabel = (r: RoleMaster) =>
+    r.approvalMode === 'Limit' ? t('Rs {amount}', { amount: r.approvalLimit.toLocaleString('en-LK') }) : t(approvalText(r));
 
   const openInvite = () => {
     setNewUser({ name: '', email: '', role: firstRole, scope: '' });
@@ -62,11 +85,11 @@ export default function UsersRoles() {
   const sendInvite = () => {
     const otp = inviteRole?.signIn === 'Mobile OTP';
     const e: Record<string, string> = {};
-    if (!newUser.name.trim()) e.name = 'Enter the full name.';
+    if (!newUser.name.trim()) e.name = t('Enter the full name.');
     if (otp ? !/^\+?\d[\d\s]{8,}$/.test(newUser.email.trim()) : !/^\S+@\S+\.\S+$/.test(newUser.email.trim()))
-      e.email = otp ? 'Enter a mobile number, e.g. +94 77 123 4567.' : 'Enter a valid email.';
-    if (!inviteRole) e.role = 'Pick a role.';
-    if (!scope) e.scope = 'No active scope fits this role — add one in the Access scope master.';
+      e.email = otp ? t('Enter a mobile number, e.g. {phone}.', { phone: '+94 77 123 4567' }) : t('Enter a valid email.');
+    if (!inviteRole) e.role = t('Pick a role.');
+    if (!scope) e.scope = t('No active scope fits this role — add one in the Access scope master.');
     setErrors(e);
     if (Object.keys(e).length || !inviteRole) return;
 
@@ -86,7 +109,7 @@ export default function UsersRoles() {
       },
     ]);
     setInvite(false);
-    toast(otp ? `SMS invitation sent to ${newUser.email.trim()}` : `Invitation sent to ${newUser.email.trim()}`);
+    toast(otp ? t('SMS invitation sent to {to}', { to: newUser.email.trim() }) : t('Invitation sent to {to}', { to: newUser.email.trim() }));
   };
 
   const usersWithRole = (name: string) => users.filter((u) => u.role === name).length;
@@ -94,16 +117,16 @@ export default function UsersRoles() {
   return (
     <>
       <PageHeader
-        breadcrumb={[{ label: 'Administration' }, { label: 'Users & roles' }]}
-        title="Users, roles & permissions"
-        description="Who can sign in, what they can see and which approvals they can make."
+        breadcrumb={[{ label: t('Administration') }, { label: t('Users & roles') }]}
+        title={t('Users, roles & permissions')}
+        description={t('Who can sign in, what they can see and which approvals they can make.')}
         actions={
           <>
             <button className="btn btn-secondary" onClick={() => navigate('/masters/roles', { state: { newRole: true } })}>
-              <Plus className="h-4 w-4" /> New role
+              <Plus className="h-4 w-4" /> {t('New role')}
             </button>
             <button className="btn btn-primary" onClick={openInvite}>
-              <UserPlus className="h-4 w-4" /> Invite user
+              <UserPlus className="h-4 w-4" /> {t('Invite user')}
             </button>
           </>
         }
@@ -114,8 +137,8 @@ export default function UsersRoles() {
         onChange={setTab}
         className="mb-6"
         tabs={[
-          { id: 'users', label: 'Users', count: users.length },
-          { id: 'roles', label: 'Roles', count: roles.length },
+          { id: 'users', label: t('Users'), count: users.length },
+          { id: 'roles', label: t('Roles'), count: roles.length },
         ]}
       />
 
@@ -123,14 +146,14 @@ export default function UsersRoles() {
         <Card>
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 p-4">
             <label className="relative w-full sm:w-80">
-              <span className="sr-only">Search users</span>
+              <span className="sr-only">{t('Search users')}</span>
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-              <input className="input pl-9" placeholder="Name, email, role or scope" value={q} onChange={(e) => setQ(e.target.value)} />
+              <input className="input pl-9" placeholder={t('Name, email, role or scope')} value={q} onChange={(e) => setQ(e.target.value)} />
             </label>
             <div className="flex flex-wrap gap-1.5">
-              <Badge tone="success" dot>Active {users.filter((u) => u.status === 'Active').length}</Badge>
-              <Badge tone="warning" dot>Invited {users.filter((u) => u.status === 'Invited').length}</Badge>
-              <Badge tone="danger" dot>Locked {users.filter((u) => u.status === 'Locked').length}</Badge>
+              <Badge tone="success" dot>{t('Active')} {users.filter((u) => u.status === 'Active').length}</Badge>
+              <Badge tone="warning" dot>{t('Invited')} {users.filter((u) => u.status === 'Invited').length}</Badge>
+              <Badge tone="danger" dot>{t('Locked')} {users.filter((u) => u.status === 'Locked').length}</Badge>
             </div>
           </div>
           <DataTable<AppUser>
@@ -139,7 +162,7 @@ export default function UsersRoles() {
             columns={[
               {
                 key: 'name',
-                header: 'User',
+                header: t('User'),
                 render: (u) => (
                   <div className="flex items-center gap-3">
                     <Avatar name={u.name} size="sm" />
@@ -150,13 +173,13 @@ export default function UsersRoles() {
                   </div>
                 ),
               },
-              { key: 'role', header: 'Role' },
-              { key: 'scope', header: 'Scope', className: 'text-zinc-600' },
-              { key: 'signIn', header: 'Sign-in' },
-              { key: 'mfa', header: '2-step', render: (u) => <Badge tone={u.mfa === 'Off' ? 'warning' : 'success'}>{u.mfa}</Badge> },
-              { key: 'device', header: 'Mobile device', className: 'text-zinc-600' },
-              { key: 'last', header: 'Last active', render: (u) => u.lastActive },
-              { key: 'status', header: 'Status', render: (u) => <StatusBadge status={u.status} /> },
+              { key: 'role', header: t('Role'), render: (u) => t(u.role) },
+              { key: 'scope', header: t('Scope'), className: 'text-zinc-600', render: (u) => scopeName(u.scope) },
+              { key: 'signIn', header: t('Sign-in'), render: (u) => t(u.signIn) },
+              { key: 'mfa', header: t('2-step'), render: (u) => <Badge tone={u.mfa === 'Off' ? 'warning' : 'success'}>{t(u.mfa)}</Badge> },
+              { key: 'device', header: t('Mobile device'), className: 'text-zinc-600', render: (u) => deviceText(u.device, t) },
+              { key: 'last', header: t('Last active'), render: (u) => lastActiveText(u.lastActive, t) },
+              { key: 'status', header: t('Status'), render: (u) => <StatusBadge status={u.status} /> },
               {
                 key: 'act',
                 header: '',
@@ -166,14 +189,14 @@ export default function UsersRoles() {
                       className="btn btn-secondary btn-sm"
                       onClick={() => {
                         userStore.set((all) => all.map((x) => (x.id === u.id ? { ...x, status: 'Active' } : x)));
-                        toast(`${u.name} unlocked`);
+                        toast(t('{name} unlocked', { name: u.name }));
                       }}
                     >
-                      Unlock
+                      {t('Unlock')}
                     </button>
                   ) : (
-                    <button className="btn btn-ghost btn-sm" onClick={() => toast(`Editing ${u.name}`, 'info')}>
-                      Edit
+                    <button className="btn btn-ghost btn-sm" onClick={() => toast(t('Editing {name}', { name: u.name }), 'info')}>
+                      {t('Edit')}
                     </button>
                   ),
               },
@@ -185,10 +208,10 @@ export default function UsersRoles() {
       {tab === 'roles' && (
         <Card>
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 p-4 text-sm text-zinc-600">
-            <p>Roles, permissions and access scopes are maintained in the masters. Click a role to edit it.</p>
+            <p>{t('Roles, permissions and access scopes are maintained in the masters. Click a role to edit it.')}</p>
             <div className="flex gap-2">
-              <Link to="/masters/roles" className="btn btn-secondary btn-sm">Role master</Link>
-              <Link to="/masters/scopes" className="btn btn-secondary btn-sm">Access scope master</Link>
+              <Link to="/masters/roles" className="btn btn-secondary btn-sm">{t('Role master')}</Link>
+              <Link to="/masters/scopes" className="btn btn-secondary btn-sm">{t('Access scope master')}</Link>
             </div>
           </div>
           <DataTable<RoleMaster>
@@ -196,13 +219,13 @@ export default function UsersRoles() {
             rowKey={(r) => r.code}
             onRowClick={(r) => navigate('/masters/roles', { state: { code: r.code } })}
             columns={[
-              { key: 'name', header: 'Role', render: (r) => <span className="font-medium">{r.name}</span> },
-              { key: 'levels', header: 'Allowed scopes', className: 'text-zinc-600', render: (r) => r.levels.join(', ') },
-              { key: 'limit', header: 'Approval limit', align: 'right', mono: true, render: approvalText },
-              { key: 'signIn', header: 'Sign-in', render: (r) => r.signIn },
-              { key: 'users', header: 'Users', align: 'right', mono: true, render: (r) => num(r.users) },
-              { key: 'listed', header: 'In this list', align: 'right', mono: true, render: (r) => usersWithRole(r.name) },
-              { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
+              { key: 'name', header: t('Role'), render: (r) => <span className="font-medium">{t(r.name)}</span> },
+              { key: 'levels', header: t('Allowed scopes'), className: 'text-zinc-600', render: (r) => r.levels.map((l) => t(l)).join(', ') },
+              { key: 'limit', header: t('Approval limit'), align: 'right', mono: true, render: approvalLabel },
+              { key: 'signIn', header: t('Sign-in'), render: (r) => t(r.signIn) },
+              { key: 'users', header: t('Users'), align: 'right', mono: true, render: (r) => num(r.users) },
+              { key: 'listed', header: t('In this list'), align: 'right', mono: true, render: (r) => usersWithRole(r.name) },
+              { key: 'status', header: t('Status'), render: (r) => <StatusBadge status={r.status} /> },
             ]}
           />
         </Card>
@@ -211,38 +234,38 @@ export default function UsersRoles() {
       <Modal
         open={invite}
         onClose={() => setInvite(false)}
-        title="Invite a user"
+        title={t('Invite a user')}
         footer={
           <>
-            <button className="btn btn-secondary" onClick={() => setInvite(false)}>Cancel</button>
-            <button className="btn btn-primary" onClick={sendInvite}>Send invitation</button>
+            <button className="btn btn-secondary" onClick={() => setInvite(false)}>{t('Cancel')}</button>
+            <button className="btn btn-primary" onClick={sendInvite}>{t('Send invitation')}</button>
           </>
         }
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Full name" className="sm:col-span-2" error={errors.name}>
+          <Field label={t('Full name')} className="sm:col-span-2" error={errors.name}>
             <input className="input" value={newUser.name} onChange={(e) => setNewUser((u) => ({ ...u, name: e.target.value }))} />
           </Field>
-          <Field label="Role" error={errors.role}>
+          <Field label={t('Role')} error={errors.role}>
             <select className="input" value={newUser.role} onChange={(e) => setNewUser((u) => ({ ...u, role: e.target.value, scope: '' }))}>
               {activeRoles.map((r) => (
-                <option key={r.code}>{r.name}</option>
+                <option key={r.code} value={r.name}>{t(r.name)}</option>
               ))}
             </select>
           </Field>
           <Field
-            label="Scope"
+            label={t('Scope')}
             error={errors.scope}
-            hint={inviteRole ? `${inviteRole.levels.join(' / ')} scopes only` : undefined}
+            hint={inviteRole ? t('{levels} scopes only', { levels: inviteRole.levels.map((l) => t(l)).join(' / ') }) : undefined}
           >
             <select className="input" value={scope} onChange={(e) => setNewUser((u) => ({ ...u, scope: e.target.value }))} disabled={!scopes.length}>
-              {!scopes.length && <option value="">No scope available</option>}
+              {!scopes.length && <option value="">{t('No scope available')}</option>}
               {(['Company', 'Region', 'Center', 'Route'] as const).map((lvl) => {
                 const group = scopes.filter((s) => s.level === lvl);
                 return group.length ? (
-                  <optgroup key={lvl} label={lvl}>
+                  <optgroup key={lvl} label={t(lvl)}>
                     {group.map((s) => (
-                      <option key={s.code} value={s.name}>{s.name}</option>
+                      <option key={s.code} value={s.name}>{scopeName(s.name)}</option>
                     ))}
                   </optgroup>
                 ) : null;
@@ -250,7 +273,7 @@ export default function UsersRoles() {
             </select>
           </Field>
           <Field
-            label={inviteRole?.signIn === 'Mobile OTP' ? 'Mobile number' : 'Email'}
+            label={inviteRole?.signIn === 'Mobile OTP' ? t('Mobile number') : t('Email')}
             className="sm:col-span-2"
             error={errors.email}
           >
@@ -265,21 +288,25 @@ export default function UsersRoles() {
           {inviteRole && (
             <div className="space-y-2 rounded-lg bg-zinc-50 p-3 text-xs text-zinc-600 sm:col-span-2">
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
-              <dt className="font-medium text-zinc-700">Sign-in</dt>
+              <dt className="font-medium text-zinc-700">{t('Sign-in')}</dt>
               <dd>
-                {SIGN_IN_TEXT[inviteRole.signIn]}
-                {inviteRole.signIn === 'Mobile OTP' ? (inviteRole.bindDevice ? ' · bound to one phone' : '') : inviteRole.twoStep ? ' · 2-step on' : ' · 2-step off'}
+                {t(SIGN_IN_TEXT[inviteRole.signIn])}
+                {inviteRole.signIn === 'Mobile OTP'
+                  ? inviteRole.bindDevice
+                    ? ` · ${t('bound to one phone')}`
+                    : ''
+                  : ` · ${inviteRole.twoStep ? t('2-step on') : t('2-step off')}`}
               </dd>
-              <dt className="font-medium text-zinc-700">Approvals</dt>
-              <dd>{approvalText(inviteRole)}</dd>
+              <dt className="font-medium text-zinc-700">{t('Approvals')}</dt>
+              <dd>{approvalLabel(inviteRole)}</dd>
               </dl>
               <p>
                 <Link to="/masters/roles" state={{ code: inviteRole.code }} className="font-medium text-brand-700 hover:underline">
-                  Change this role
+                  {t('Change this role')}
                 </Link>
                 {' · '}
                 <Link to="/masters/scopes" className="font-medium text-brand-700 hover:underline">
-                  Manage scopes
+                  {t('Manage scopes')}
                 </Link>
               </p>
             </div>

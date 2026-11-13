@@ -43,8 +43,12 @@ const trOwner = (owner: string, t: TFn) =>
     .map((p, i) => (i === 0 || p === 'not assigned' ? t(p) : p))
     .join(' · ');
 
-/** Timeline "who": a team/channel word, or "Counter 2". */
+/** Timeline "who": a team/channel word, or "Counter 2". "System" gets its own key (the plain one is the theme option). */
 const trWho = (who: string, t: TFn) => {
+  if (who === 'System') {
+    const s = t('System (automatic)');
+    return s === 'System (automatic)' ? who : s;
+  }
   const m = /^Counter (\d+)$/.exec(who);
   return m ? t('Counter {n}', { n: m[1] }) : t(who);
 };

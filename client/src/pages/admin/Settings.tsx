@@ -11,6 +11,7 @@ import { incentiveSchemes } from '@/data/mock';
 import { qualityLimits } from '@/lib/pricing';
 import { compact, num } from '@/lib/format';
 import { useToast } from '@/context/ToastContext';
+import { useLang } from '@/i18n/LanguageContext';
 
 const sections = [
   'Incentive schemes',
@@ -62,6 +63,8 @@ const notificationRows = [
 
 export default function Settings() {
   const toast = useToast();
+  const { t } = useLang();
+  const opt = (v: string) => <option key={v} value={v}>{t(v)}</option>;
   const [section, setSection] = useState<Section>('Incentive schemes');
   const [workflow, setWorkflow] = useState('Payment run');
   const [notifs, setNotifs] = useState(notificationRows);
@@ -69,19 +72,19 @@ export default function Settings() {
   return (
     <>
       <PageHeader
-        breadcrumb={[{ label: 'Administration' }, { label: 'Settings' }]}
-        title="System settings"
-        description="Business rules used across collection, pricing, payments and approvals. Every change is logged."
+        breadcrumb={[{ label: t('Administration') }, { label: t('Settings') }]}
+        title={t('System settings')}
+        description={t('Business rules used across collection, pricing, payments and approvals. Every change is logged.')}
         actions={
-          <button className="btn btn-primary" onClick={() => toast(`${section} saved`)}>
-            <Save className="h-4 w-4" /> Save changes
+          <button className="btn btn-primary" onClick={() => toast(t('{section} saved', { section: t(section) }))}>
+            <Save className="h-4 w-4" /> {t('Save changes')}
           </button>
         }
       />
 
       <div className="grid gap-6 xl:grid-cols-4">
         <Card className="h-fit">
-          <nav aria-label="Settings sections" className="scrollbar-none flex gap-1 overflow-x-auto p-2 xl:flex-col">
+          <nav aria-label={t('Settings sections')} className="scrollbar-none flex gap-1 overflow-x-auto p-2 xl:flex-col">
             {sections.map((s) => (
               <button
                 key={s}
@@ -92,7 +95,7 @@ export default function Settings() {
                   s === section ? 'bg-brand-50 font-medium text-brand-700' : 'text-zinc-700 hover:bg-zinc-100',
                 )}
               >
-                {s}
+                {t(s)}
               </button>
             ))}
           </nav>
@@ -101,15 +104,15 @@ export default function Settings() {
         <div className="flex flex-col gap-6 xl:col-span-3">
           {section === 'Incentive schemes' && (
             <Card>
-              <CardHeader title="Incentive & bonus schemes" subtitle="Loyalty, performance and seasonal bonuses" actions={<button className="btn btn-secondary btn-sm"><Plus className="h-3.5 w-3.5" /> Scheme</button>} />
+              <CardHeader title={t('Incentive & bonus schemes')} subtitle={t('Loyalty, performance and seasonal bonuses')} actions={<button className="btn btn-secondary btn-sm"><Plus className="h-3.5 w-3.5" /> {t('Scheme')}</button>} />
               <DataTable
                 rows={incentiveSchemes}
                 rowKey={(s) => s.name}
                 columns={[
-                  { key: 'name', header: 'Scheme', render: (s) => <span className="font-medium">{s.name}</span> },
-                  { key: 'basis', header: 'Basis' },
-                  { key: 'total', header: 'Last period', align: 'right', mono: true, render: (s) => `Rs ${compact(s.total)}` },
-                  { key: 'on', header: 'Active', render: () => <Toggle label="Active" checked onChange={() => toast('Scheme updated', 'info')} /> },
+                  { key: 'name', header: t('Scheme'), render: (s) => <span className="font-medium">{t(s.name)}</span> },
+                  { key: 'basis', header: t('Basis'), render: (s) => t(s.basis) },
+                  { key: 'total', header: t('Last period'), align: 'right', mono: true, render: (s) => t('Rs {amount}', { amount: compact(s.total) }) },
+                  { key: 'on', header: t('Active'), render: () => <Toggle label={t('Active')} checked onChange={() => toast(t('Scheme updated'), 'info')} /> },
                 ]}
               />
             </Card>
@@ -117,15 +120,15 @@ export default function Settings() {
 
           {section === 'Deduction types' && (
             <Card>
-              <CardHeader title="Deduction types" subtitle="What can be recovered from farmer payments, and how much per period" />
+              <CardHeader title={t('Deduction types')} subtitle={t('What can be recovered from farmer payments, and how much per period')} />
               <DataTable
                 rows={deductionTypes}
                 rowKey={(d) => d.name}
                 columns={[
-                  { key: 'name', header: 'Type', render: (d) => <span className="font-medium">{d.name}</span> },
-                  { key: 'erpItem', header: 'ERP item / account', mono: true },
-                  { key: 'maxPct', header: 'Max % of milk value', align: 'right', mono: true, render: (d) => `${d.maxPct}%` },
-                  { key: 'periods', header: 'Default periods', align: 'right', mono: true },
+                  { key: 'name', header: t('Type'), render: (d) => <span className="font-medium">{t(d.name)}</span> },
+                  { key: 'erpItem', header: t('ERP item / account'), mono: true },
+                  { key: 'maxPct', header: t('Max % of milk value'), align: 'right', mono: true, render: (d) => `${d.maxPct}%` },
+                  { key: 'periods', header: t('Default periods'), align: 'right', mono: true },
                 ]}
               />
             </Card>
@@ -134,10 +137,10 @@ export default function Settings() {
           {section === 'Approval workflows' && (
             <Card>
               <CardHeader
-                title="Approval workflows"
+                title={t('Approval workflows')}
                 actions={
-                  <select className="input w-full sm:w-64" aria-label="Workflow" value={workflow} onChange={(e) => setWorkflow(e.target.value)}>
-                    {Object.keys(workflows).map((w) => <option key={w}>{w}</option>)}
+                  <select className="input w-full sm:w-64" aria-label={t('Workflow')} value={workflow} onChange={(e) => setWorkflow(e.target.value)}>
+                    {Object.keys(workflows).map(opt)}
                   </select>
                 }
               />
@@ -147,28 +150,28 @@ export default function Settings() {
                     <div key={s.level} className="flex items-center gap-3">
                       {i > 0 && <ArrowRight className="h-4 w-4 text-zinc-400" />}
                       <div className="min-w-[180px] rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{s.level}</p>
-                        <p className="text-sm font-semibold">{s.who}</p>
-                        <p className="text-xs text-zinc-500">{s.when}</p>
-                        <button className="mt-2 inline-flex items-center gap-1 text-xs text-red-700 hover:underline" onClick={() => toast('Level removed', 'info')}>
-                          <Trash2 className="h-3 w-3" /> Remove
+                        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{t(s.level)}</p>
+                        <p className="text-sm font-semibold">{t(s.who)}</p>
+                        <p className="text-xs text-zinc-500">{t(s.when)}</p>
+                        <button className="mt-2 inline-flex items-center gap-1 text-xs text-red-700 hover:underline" onClick={() => toast(t('Level removed'), 'info')}>
+                          <Trash2 className="h-3 w-3" /> {t('Remove')}
                         </button>
                       </div>
                     </div>
                   ))}
-                  <button className="btn btn-secondary self-center" onClick={() => toast('Level added', 'info')}>
-                    <Plus className="h-4 w-4" /> Level
+                  <button className="btn btn-secondary self-center" onClick={() => toast(t('Level added'), 'info')}>
+                    <Plus className="h-4 w-4" /> {t('Level')}
                   </button>
                 </div>
                 <FormGrid>
-                  <Field label="Escalate if no action in">
-                    <select className="input"><option>24 hours</option><option>48 hours</option><option>72 hours</option></select>
+                  <Field label={t('Escalate if no action in')}>
+                    <select className="input">{opt('24 hours')}{opt('48 hours')}{opt('72 hours')}</select>
                   </Field>
-                  <Field label="Delegation">
-                    <select className="input"><option>Any approver, up to 14 days</option><option>Not allowed</option></select>
+                  <Field label={t('Delegation')}>
+                    <select className="input">{opt('Any approver, up to 14 days')}{opt('Not allowed')}</select>
                   </Field>
-                  <Field label="Requester can approve own request">
-                    <select className="input"><option>No</option></select>
+                  <Field label={t('Requester can approve own request')}>
+                    <select className="input">{opt('No')}</select>
                   </Field>
                 </FormGrid>
               </CardBody>
@@ -177,29 +180,29 @@ export default function Settings() {
 
           {section === 'Notifications' && (
             <Card>
-              <CardHeader title="Notifications" subtitle="Which events send SMS, app or email messages" />
+              <CardHeader title={t('Notifications')} subtitle={t('Which events send SMS, app or email messages')} />
               <DataTable
                 rows={notifs}
                 rowKey={(n) => n.event}
                 columns={[
-                  { key: 'event', header: 'Event', render: (n) => <span className="font-medium">{n.event}</span> },
-                  { key: 'to', header: 'Sent to', className: 'text-zinc-600' },
+                  { key: 'event', header: t('Event'), render: (n) => <span className="font-medium">{t(n.event)}</span> },
+                  { key: 'to', header: t('Sent to'), className: 'text-zinc-600', render: (n) => t(n.to) },
                   ...(['sms', 'push', 'email'] as const).map((ch) => ({
                     key: ch,
-                    header: ch === 'sms' ? 'SMS' : ch === 'push' ? 'App' : 'Email',
+                    header: ch === 'sms' ? t('SMS') : ch === 'push' ? t('App') : t('Email'),
                     render: (n: (typeof notificationRows)[number]) => (
                       <Toggle
-                        label={`${n.event} ${ch}`}
+                        label={`${t(n.event)} ${ch === 'sms' ? t('SMS') : ch === 'push' ? t('App') : t('Email')}`}
                         checked={n[ch]}
                         onChange={(v) => setNotifs((all) => all.map((x) => (x.event === n.event ? { ...x, [ch]: v } : x)))}
                       />
                     ),
                   })),
-                  { key: 'lang', header: 'Languages', mono: true },
+                  { key: 'lang', header: t('Languages'), mono: true },
                 ]}
               />
               <CardBody className="border-t border-zinc-100">
-                <Field label="SMS template · Payment posted" hint="Variables: {amount} {period} {bank} {last4} {litres}">
+                <Field label={t('SMS template · Payment posted')} hint={`${t('Variables:')} {amount} {period} {bank} {last4} {litres}`}>
                   <textarea
                     className="input"
                     rows={3}
@@ -212,20 +215,20 @@ export default function Settings() {
 
           {section === 'Quality limits' && (
             <Card>
-              <CardHeader title="Quality limits & collection rules" subtitle="Applied at every collection counter, on desktop and phone" />
+              <CardHeader title={t('Quality limits & collection rules')} subtitle={t('Applied at every collection counter, on desktop and phone')} />
               <CardBody>
                 <FormGrid>
-                  <Field label="Minimum FAT %"><input className="input num" defaultValue={qualityLimits.minFat.toFixed(2)} /></Field>
-                  <Field label="Minimum SNF %"><input className="input num" defaultValue={qualityLimits.minSnf.toFixed(2)} /></Field>
-                  <Field label="Chill bonus at or below (°C)"><input className="input num" defaultValue={qualityLimits.chillTemp} /></Field>
-                  <Field label="Chill bonus (Rs / L)"><input className="input num" defaultValue={qualityLimits.chillBonus.toFixed(2)} /></Field>
-                  <Field label="Flag deliveries above (°C)"><input className="input num" defaultValue={qualityLimits.flagTemp} /></Field>
-                  <Field label="Morning cut-off"><input className="input num" type="time" defaultValue="09:00" /></Field>
-                  <Field label="Evening cut-off"><input className="input num" type="time" defaultValue="19:00" /></Field>
-                  <Field label="Edit window after shift close">
-                    <select className="input"><option>24 hours, needs approval</option><option>Not allowed</option></select>
+                  <Field label={t('Minimum FAT %')}><input className="input num" defaultValue={qualityLimits.minFat.toFixed(2)} /></Field>
+                  <Field label={t('Minimum SNF %')}><input className="input num" defaultValue={qualityLimits.minSnf.toFixed(2)} /></Field>
+                  <Field label={t('Chill bonus at or below (°C)')}><input className="input num" defaultValue={qualityLimits.chillTemp} /></Field>
+                  <Field label={t('Chill bonus (Rs / L)')}><input className="input num" defaultValue={qualityLimits.chillBonus.toFixed(2)} /></Field>
+                  <Field label={t('Flag deliveries above (°C)')}><input className="input num" defaultValue={qualityLimits.flagTemp} /></Field>
+                  <Field label={t('Morning cut-off')}><input className="input num" type="time" defaultValue="09:00" /></Field>
+                  <Field label={t('Evening cut-off')}><input className="input num" type="time" defaultValue="19:00" /></Field>
+                  <Field label={t('Edit window after shift close')}>
+                    <select className="input">{opt('24 hours, needs approval')}{opt('Not allowed')}</select>
                   </Field>
-                  <Field label="Retain samples for (days)"><input className="input num" defaultValue="3" /></Field>
+                  <Field label={t('Retain samples for (days)')}><input className="input num" defaultValue="3" /></Field>
                 </FormGrid>
               </CardBody>
             </Card>
@@ -233,15 +236,15 @@ export default function Settings() {
 
           {section === 'Payment periods & bank' && (
             <Card>
-              <CardHeader title="Payment periods & bank file" />
+              <CardHeader title={t('Payment periods & bank file')} />
               <CardBody>
                 <FormGrid>
-                  <Field label="Payment cycle"><select className="input"><option>Twice a month (1–15, 16–end)</option><option>Weekly</option><option>Monthly</option></select></Field>
-                  <Field label="Pay on"><select className="input"><option>1st working day after period</option></select></Field>
-                  <Field label="Bank file format"><select className="input"><option>LankaClear SLIPS</option><option>CEFTS bulk</option><option>Bank of Ceylon corporate CSV</option></select></Field>
-                  <Field label="Debit account"><input className="input num" defaultValue="0000-1234-5678" /></Field>
-                  <Field label="Negative balance"><select className="input"><option>Carry forward to next period</option><option>Hold payment</option></select></Field>
-                  <Field label="Rounding"><select className="input"><option>Nearest rupee</option><option>Nearest 10 cents</option></select></Field>
+                  <Field label={t('Payment cycle')}><select className="input">{opt('Twice a month (1–15, 16–end)')}{opt('Weekly')}{opt('Monthly')}</select></Field>
+                  <Field label={t('Pay on')}><select className="input">{opt('1st working day after period')}</select></Field>
+                  <Field label={t('Bank file format')}><select className="input">{opt('LankaClear SLIPS')}{opt('CEFTS bulk')}{opt('Bank of Ceylon corporate CSV')}</select></Field>
+                  <Field label={t('Debit account')}><input className="input num" defaultValue="0000-1234-5678" /></Field>
+                  <Field label={t('Negative balance')}><select className="input">{opt('Carry forward to next period')}{opt('Hold payment')}</select></Field>
+                  <Field label={t('Rounding')}><select className="input">{opt('Nearest rupee')}{opt('Nearest 10 cents')}</select></Field>
                 </FormGrid>
               </CardBody>
             </Card>
@@ -249,14 +252,14 @@ export default function Settings() {
 
           {section === 'Company' && (
             <Card>
-              <CardHeader title="Company" />
+              <CardHeader title={t('Company')} />
               <CardBody>
                 <FormGrid>
-                  <Field label="Legal name" className="sm:col-span-2"><input className="input" defaultValue="Milk Industries of Lanka Company Ltd." /></Field>
-                  <Field label="Short name"><input className="input" defaultValue="MILCO" /></Field>
-                  <Field label="Currency"><input className="input" readOnly defaultValue="LKR (Rs)" /></Field>
-                  <Field label="Time zone"><input className="input" readOnly defaultValue="Asia/Colombo (UTC+05:30)" /></Field>
-                  <Field label="Help line"><input className="input" defaultValue="1919" /></Field>
+                  <Field label={t('Legal name')} className="sm:col-span-2"><input className="input" defaultValue="Milk Industries of Lanka Company Ltd." /></Field>
+                  <Field label={t('Short name')}><input className="input" defaultValue="MILCO" /></Field>
+                  <Field label={t('Currency')}><input className="input" readOnly defaultValue="LKR (Rs)" /></Field>
+                  <Field label={t('Time zone')}><input className="input" readOnly defaultValue="Asia/Colombo (UTC+05:30)" /></Field>
+                  <Field label={t('Help line')}><input className="input" defaultValue="1919" /></Field>
                 </FormGrid>
               </CardBody>
             </Card>

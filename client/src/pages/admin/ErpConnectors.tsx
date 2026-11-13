@@ -10,66 +10,71 @@ import { Field, FormGrid } from '@/components/ui/Field';
 import { Toggle } from '@/components/ui/misc';
 import { erpSystems as seedSystems, syncObjects as seedObjects, type ErpKey, type SyncObject } from '@/data/mock';
 import { useToast } from '@/context/ToastContext';
+import { useLang } from '@/i18n/LanguageContext';
 
 type TestState = 'idle' | 'running' | 'done';
 
 const testSteps = ['Sign in', 'Read business partners', 'Read items', 'Post a test document (rolled back)'];
 
 function SapB1Form() {
+  const { t } = useLang();
   return (
     <FormGrid>
-      <Field label="Service Layer URL" className="sm:col-span-2">
+      <Field label={t('Service Layer URL')} className="sm:col-span-2">
         <input className="input" defaultValue="https://sapb1.milco.lk:50000/b1s/v1" />
       </Field>
-      <Field label="Company database"><input className="input" defaultValue="MILCO_LIVE" /></Field>
-      <Field label="Username"><input className="input" defaultValue="milco_integration" /></Field>
-      <Field label="Password" hint="Stored encrypted on the server"><input className="input" type="password" defaultValue="placeholder" /></Field>
-      <Field label="Database type">
+      <Field label={t('Company database')}><input className="input" defaultValue="MILCO_LIVE" /></Field>
+      <Field label={t('Username')}><input className="input" defaultValue="milco_integration" /></Field>
+      <Field label={t('Password')} hint={t('Stored encrypted on the server')}><input className="input" type="password" defaultValue="placeholder" /></Field>
+      <Field label={t('Database type')}>
         <select className="input"><option>SAP HANA</option><option>Microsoft SQL Server</option></select>
       </Field>
-      <Field label="B1 version"><select className="input"><option>10.0 FP 2405</option><option>10.0 FP 2311</option></select></Field>
-      <Field label="Default branch (BPL)"><select className="input"><option>1 · Head Office</option></select></Field>
-      <Field label="Session timeout (minutes)"><input className="input num" defaultValue="30" /></Field>
+      <Field label={t('B1 version')}><select className="input"><option>10.0 FP 2405</option><option>10.0 FP 2311</option></select></Field>
+      <Field label={t('Default branch (BPL)')}><select className="input"><option value="1 · Head Office">{t('1 · Head Office')}</option></select></Field>
+      <Field label={t('Session timeout (minutes)')}><input className="input num" defaultValue="30" /></Field>
     </FormGrid>
   );
 }
 
 function OdooForm() {
+  const { t } = useLang();
   return (
     <FormGrid>
-      <Field label="Odoo URL" className="sm:col-span-2"><input className="input" defaultValue="https://erp.milco.lk" /></Field>
-      <Field label="Database"><input className="input" defaultValue="milco_prod" /></Field>
-      <Field label="Login"><input className="input" defaultValue="integration@milco.lk" /></Field>
-      <Field label="API key" hint="Settings › Users › API keys in Odoo"><input className="input" type="password" defaultValue="placeholder" /></Field>
-      <Field label="Protocol"><select className="input"><option>JSON-RPC</option><option>XML-RPC</option></select></Field>
-      <Field label="Odoo version"><select className="input"><option>17.0 Enterprise</option><option>16.0</option><option>18.0</option></select></Field>
-      <Field label="Company"><select className="input"><option>Milk Industries of Lanka</option></select></Field>
-      <Field label="Vendor bill journal"><select className="input"><option>BILL · Vendor bills</option></select></Field>
+      <Field label={t('Odoo URL')} className="sm:col-span-2"><input className="input" defaultValue="https://erp.milco.lk" /></Field>
+      <Field label={t('Database')}><input className="input" defaultValue="milco_prod" /></Field>
+      <Field label={t('Login')}><input className="input" defaultValue="integration@milco.lk" /></Field>
+      <Field label={t('API key')} hint={t('Settings › Users › API keys in Odoo')}><input className="input" type="password" defaultValue="placeholder" /></Field>
+      <Field label={t('Protocol')}><select className="input"><option>JSON-RPC</option><option>XML-RPC</option></select></Field>
+      <Field label={t('Odoo version')}><select className="input"><option>17.0 Enterprise</option><option>16.0</option><option>18.0</option></select></Field>
+      <Field label={t('Company')}><select className="input"><option>Milk Industries of Lanka</option></select></Field>
+      <Field label={t('Vendor bill journal')}><select className="input"><option>BILL · Vendor bills</option></select></Field>
     </FormGrid>
   );
 }
 
 function S4Form() {
+  const { t } = useLang();
   return (
     <FormGrid>
-      <Field label="API host" className="sm:col-span-2"><input className="input" placeholder="https://my000000-api.s4hana.cloud.sap" /></Field>
-      <Field label="Deployment">
+      <Field label={t('API host')} className="sm:col-span-2"><input className="input" placeholder="https://my000000-api.s4hana.cloud.sap" /></Field>
+      <Field label={t('Deployment')}>
         <select className="input"><option>S/4HANA Cloud, public edition</option><option>S/4HANA on-premise (Cloud Connector)</option></select>
       </Field>
-      <Field label="Authentication">
-        <select className="input"><option>OAuth 2.0 client credentials</option><option>Basic (communication user)</option><option>X.509 certificate</option></select>
+      <Field label={t('Authentication')}>
+        <select className="input"><option>OAuth 2.0 client credentials</option><option value="Basic (communication user)">{t('Basic (communication user)')}</option><option value="X.509 certificate">{t('X.509 certificate')}</option></select>
       </Field>
-      <Field label="Client ID"><input className="input" placeholder="Communication user or client ID" /></Field>
-      <Field label="Client secret"><input className="input" type="password" placeholder="••••••••" /></Field>
-      <Field label="Token URL" className="sm:col-span-2"><input className="input" placeholder="https://…/oauth/token" /></Field>
-      <Field label="Communication arrangement"><input className="input" placeholder="SAP_COM_0008" /></Field>
-      <Field label="Company code"><input className="input" placeholder="1000" /></Field>
+      <Field label={t('Client ID')}><input className="input" placeholder={t('Communication user or client ID')} /></Field>
+      <Field label={t('Client secret')}><input className="input" type="password" placeholder="••••••••" /></Field>
+      <Field label={t('Token URL')} className="sm:col-span-2"><input className="input" placeholder="https://…/oauth/token" /></Field>
+      <Field label={t('Communication arrangement')}><input className="input" placeholder="SAP_COM_0008" /></Field>
+      <Field label={t('Company code')}><input className="input" placeholder="1000" /></Field>
     </FormGrid>
   );
 }
 
 export default function ErpConnectors() {
   const toast = useToast();
+  const { t } = useLang();
   const [systems, setSystems] = useState(seedSystems);
   const [selected, setSelected] = useState<ErpKey>('sapb1');
   const [objects, setObjects] = useState<SyncObject[]>(seedObjects);
@@ -89,7 +94,7 @@ export default function ErpConnectors() {
         if (i === testSteps.length - 1) {
           setTest('done');
           if (!configured) setSystems((s) => s.map((x) => (x.key === selected ? { ...x, status: 'Inactive', note: 'Tested just now, passed' } : x)));
-          toast(`${erp.name}: connection test passed`);
+          toast(t('{name}: connection test passed', { name: erp.name }));
         }
       }, 450 * (i + 1)),
     );
@@ -97,18 +102,18 @@ export default function ErpConnectors() {
 
   const activate = () => {
     setSystems((s) => s.map((x) => ({ ...x, status: x.key === selected ? 'Active' : x.status === 'Active' ? 'Inactive' : x.status })));
-    toast(`${erp.name} is now the active ERP. New documents will post there.`);
+    toast(t('{name} is now the active ERP. New documents will post there.', { name: erp.name }));
   };
 
   return (
     <>
       <PageHeader
-        breadcrumb={[{ label: 'Administration' }, { label: 'ERP connectors' }]}
-        title="ERP integration"
-        description="Choose the ERP this MILCO system posts to. One connector is active at a time; others can be set up and tested ahead of a switch."
+        breadcrumb={[{ label: t('Administration') }, { label: t('ERP connectors') }]}
+        title={t('ERP integration')}
+        description={t('Choose the ERP this MILCO system posts to. One connector is active at a time; others can be set up and tested ahead of a switch.')}
         actions={
           <Link to="/erp/sync" className="btn btn-secondary">
-            Field mapping & sync log
+            {t('Field mapping & sync log')}
           </Link>
         }
       />
@@ -139,7 +144,7 @@ export default function ErpConnectors() {
                 {s.protocol} · {s.version}
               </span>
             </span>
-            <span className="text-xs text-zinc-500">{s.note}</span>
+            <span className="text-xs text-zinc-500">{t(s.note)}</span>
           </button>
         ))}
       </div>
@@ -147,23 +152,23 @@ export default function ErpConnectors() {
       <div className="grid gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader
-            title={`${erp.name} connection`}
+            title={t('{name} connection', { name: erp.name })}
             subtitle={erp.protocol}
-            actions={erp.status === 'Active' ? <Badge tone="success" dot>Active connector</Badge> : undefined}
+            actions={erp.status === 'Active' ? <Badge tone="success" dot>{t('Active connector')}</Badge> : undefined}
           />
           <CardBody className="space-y-6">
             {selected === 'sapb1' && <SapB1Form />}
             {selected === 'odoo' && <OdooForm />}
             {selected === 's4hana' && <S4Form />}
             <div className="flex flex-wrap justify-end gap-2 border-t border-zinc-100 pt-5">
-              <button className="btn btn-secondary" onClick={() => toast('Connection settings saved')}>
-                <Save className="h-4 w-4" /> Save
+              <button className="btn btn-secondary" onClick={() => toast(t('Connection settings saved'))}>
+                <Save className="h-4 w-4" /> {t('Save')}
               </button>
               <button className="btn btn-secondary" onClick={runTest} disabled={test === 'running'}>
-                {test === 'running' ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlugZap className="h-4 w-4" />} Test connection
+                {test === 'running' ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlugZap className="h-4 w-4" />} {t('Test connection')}
               </button>
               <button className="btn btn-primary" onClick={activate} disabled={erp.status === 'Active' || erp.status === 'Not configured'}>
-                Set as active ERP
+                {t('Set as active ERP')}
               </button>
             </div>
           </CardBody>
@@ -171,14 +176,14 @@ export default function ErpConnectors() {
 
         <div className="flex flex-col gap-6">
           <Card>
-            <CardHeader title="Connection test" subtitle={test === 'idle' ? 'Not run in this session' : test === 'running' ? 'Running…' : 'Finished'} />
+            <CardHeader title={t('Connection test')} subtitle={test === 'idle' ? t('Not run in this session') : test === 'running' ? t('Running…') : t('Finished')} />
             <ul className="divide-y divide-zinc-100">
-              {testSteps.map((t, i) => {
+              {testSteps.map((step, i) => {
                 const done = testIndex > i;
                 const running = test === 'running' && testIndex === i;
                 return (
-                  <li key={t} className="flex items-center justify-between gap-2 px-5 py-3 text-sm">
-                    <span>{t}</span>
+                  <li key={step} className="flex items-center justify-between gap-2 px-5 py-3 text-sm">
+                    <span>{t(step)}</span>
                     {done ? (
                       <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                     ) : running ? (
@@ -192,15 +197,15 @@ export default function ErpConnectors() {
             </ul>
           </Card>
           <Card>
-            <CardHeader title="Retry & alerts" />
+            <CardHeader title={t('Retry & alerts')} />
             <CardBody className="space-y-4">
-              <Field label="Retries on failure">
+              <Field label={t('Retries on failure')}>
                 <input className="input num" value={retries} onChange={(e) => setRetries(e.target.value)} />
               </Field>
-              <Field label="Back-off">
-                <select className="input"><option>Exponential, max 30 minutes</option><option>Fixed, every 5 minutes</option></select>
+              <Field label={t('Back-off')}>
+                <select className="input"><option value="Exponential, max 30 minutes">{t('Exponential, max 30 minutes')}</option><option value="Fixed, every 5 minutes">{t('Fixed, every 5 minutes')}</option></select>
               </Field>
-              <Field label="Alert email">
+              <Field label={t('Alert email')}>
                 <input className="input" defaultValue="erp-support@milco.lk" />
               </Field>
             </CardBody>
@@ -209,22 +214,22 @@ export default function ErpConnectors() {
       </div>
 
       <Card className="mt-6">
-        <CardHeader title={`What syncs with ${erp.name}`} subtitle="Direction, ERP object and schedule for each record type" />
+        <CardHeader title={t('What syncs with {name}', { name: erp.name })} subtitle={t('Direction, ERP object and schedule for each record type')} />
         <DataTable<SyncObject>
           rows={objects}
           rowKey={(o) => o.id}
           columns={[
-            { key: 'name', header: 'Record', render: (o) => <span className="font-medium">{o.name}</span> },
-            { key: 'milco', header: 'In MILCO', className: 'text-zinc-600' },
-            { key: 'dir', header: 'Direction', render: (o) => <Badge tone={o.direction === 'Both ways' ? 'info' : 'neutral'}>{o.direction}</Badge> },
-            { key: 'target', header: `${erp.name} object`, render: (o) => <span className="num text-[13px]">{o.target[selected]}</span> },
-            { key: 'when', header: 'When' },
+            { key: 'name', header: t('Record'), render: (o) => <span className="font-medium">{t(o.name)}</span> },
+            { key: 'milco', header: t('In MILCO'), className: 'text-zinc-600', render: (o) => t(o.milco) },
+            { key: 'dir', header: t('Direction'), render: (o) => <Badge tone={o.direction === 'Both ways' ? 'info' : 'neutral'}>{t(o.direction)}</Badge> },
+            { key: 'target', header: t('{name} object', { name: erp.name }), render: (o) => <span className="num text-[13px]">{o.target[selected]}</span> },
+            { key: 'when', header: t('When'), render: (o) => t(o.when) },
             {
               key: 'on',
-              header: 'Enabled',
+              header: t('Enabled'),
               render: (o) => (
                 <Toggle
-                  label={`Sync ${o.name}`}
+                  label={t('Sync {name}', { name: t(o.name) })}
                   checked={o.enabled}
                   onChange={(v) => setObjects((all) => all.map((x) => (x.id === o.id ? { ...x, enabled: v } : x)))}
                 />
