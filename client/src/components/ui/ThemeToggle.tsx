@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { Check, Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme, type ThemeMode } from '@/context/ThemeContext';
 import { useClickOutside } from '@/hooks/useClickOutside';
+import { useLang } from "@/i18n/LanguageContext";
 
 const options: { id: ThemeMode; label: string; icon: typeof Sun }[] = [
   { id: 'light', label: 'Light', icon: Sun },
@@ -12,6 +13,7 @@ const options: { id: ThemeMode; label: string; icon: typeof Sun }[] = [
 
 export default function ThemeToggle({ className }: { className?: string }) {
   const { mode, resolved, setMode } = useTheme();
+  const { t } = useLang();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const close = useCallback(() => setOpen(false), []);
@@ -23,7 +25,7 @@ export default function ThemeToggle({ className }: { className?: string }) {
       <button
         type="button"
         className="btn btn-ghost btn-icon"
-        aria-label={`Theme: ${mode}. Change theme`}
+        aria-label={t("Theme: {mode}. Change theme", { mode: t(options.find((o) => o.id === mode)?.label ?? mode) })}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
@@ -48,7 +50,7 @@ export default function ThemeToggle({ className }: { className?: string }) {
               )}
             >
               <o.icon className="h-4 w-4" />
-              {o.label}
+              {t(o.label)}
               {mode === o.id && <Check className="ml-auto h-4 w-4" />}
             </button>
           ))}

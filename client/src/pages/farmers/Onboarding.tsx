@@ -12,6 +12,7 @@ import { centers, routes } from '@/data/mock';
 import { useToast } from '@/context/ToastContext';
 import { activeTemplateNames } from '@/data/priceTemplates';
 import { useCategoryNames } from '@/data/masters';
+import { useLang } from '@/i18n/LanguageContext';
 
 const steps = ['Personal details', 'Farm & herd', 'Bank & payment', 'Contract & category', 'Documents', 'Review & submit'];
 
@@ -58,6 +59,7 @@ const docList = [
 export default function Onboarding() {
   const navigate = useNavigate();
   const toast = useToast();
+  const { t } = useLang();
   const categories = useCategoryNames();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(initial);
@@ -65,6 +67,14 @@ export default function Onboarding() {
   const [checks, setChecks] = useState({ duplicate: true, visit: true, bank: false, sample: false });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const stepLabels = steps.map((s) => t(s));
+  /** Select options: the value stays English (stored data), the visible label is translated. */
+  const opts = (list: string[]) =>
+    list.map((o) => (
+      <option key={o} value={o}>
+        {t(o)}
+      </option>
+    ));
 
   const set = (k: string) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -72,11 +82,11 @@ export default function Onboarding() {
   const validate = () => {
     const e: Record<string, string> = {};
     if (step === 0) {
-      if (!form.fullName.trim()) e.fullName = 'Enter the full name as on the NIC.';
-      if (!/^(\d{9}[VvXx]|\d{12})$/.test(form.nic.trim())) e.nic = 'Use the old (9 digits + V) or new (12 digits) NIC format.';
-      if (!form.mobile.trim()) e.mobile = 'Enter a mobile number for SMS alerts.';
+      if (!form.fullName.trim()) e.fullName = t('Enter the full name as on the NIC.');
+      if (!/^(\d{9}[VvXx]|\d{12})$/.test(form.nic.trim())) e.nic = t('Use the old (9 digits + V) or new (12 digits) NIC format.');
+      if (!form.mobile.trim()) e.mobile = t('Enter a mobile number for SMS alerts.');
     }
-    if (step === 2 && !/^\d{6,16}$/.test(form.account.replace(/\s/g, ''))) e.account = 'Enter the account number (digits only).';
+    if (step === 2 && !/^\d{6,16}$/.test(form.account.replace(/\s/g, ''))) e.account = t('Enter the account number (digits only).');
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -98,7 +108,7 @@ export default function Onboarding() {
   };
 
   const submit = () => {
-    toast('Farmer sent to the Regional Manager for approval');
+    toast(t('Farmer sent to the Regional Manager for approval'));
     navigate('/approvals');
   };
 
@@ -108,52 +118,48 @@ export default function Onboarding() {
   return (
     <>
       <PageHeader
-        breadcrumb={[{ label: 'Farmers', to: '/farmers' }, { label: 'Onboarding' }]}
-        title="Register a new farmer"
-        description="Complete each step. The farmer gets an ID and an ERP vendor record after approval."
-        actions={<button className="btn btn-secondary" onClick={() => toast('Draft saved')}>Save draft</button>}
+        breadcrumb={[{ label: t('Farmers'), to: '/farmers' }, { label: t('Onboarding') }]}
+        title={t('Register a new farmer')}
+        description={t('Complete each step. The farmer gets an ID and an ERP vendor record after approval.')}
+        actions={<button className="btn btn-secondary" onClick={() => toast(t('Draft saved'))}>{t('Save draft')}</button>}
       />
 
       <div className="mb-6">
-        <Stepper steps={steps} current={step} onStep={setStep} />
+        <Stepper steps={stepLabels} current={step} onStep={setStep} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
-          <CardHeader title={steps[step]} subtitle={`Step ${step + 1} of ${steps.length}`} />
+          <CardHeader title={stepLabels[step]} subtitle={t('Step {n} of {total}', { n: step + 1, total: steps.length })} />
           <CardBody className="space-y-6">
             {step === 0 && (
               <FormGrid>
-                <Field label="Full name (as on NIC)" error={errors.fullName} className="sm:col-span-2">
+                <Field label={t('Full name (as on NIC)')} error={errors.fullName} className="sm:col-span-2">
                   <input className="input" value={form.fullName} onChange={set('fullName')} />
                 </Field>
-                <Field label="NIC number" error={errors.nic}>
+                <Field label={t('NIC number')} error={errors.nic}>
                   <input className="input num" value={form.nic} onChange={set('nic')} />
                 </Field>
-                <Field label="Date of birth">
+                <Field label={t('Date of birth')}>
                   <input type="date" className="input" value={form.dob} onChange={set('dob')} />
                 </Field>
-                <Field label="Gender">
+                <Field label={t('Gender')}>
                   <select className="input" value={form.gender} onChange={set('gender')}>
-                    <option>Female</option>
-                    <option>Male</option>
-                    <option>Prefer not to say</option>
+                    {opts(["Female","Male","Prefer not to say"])}
                   </select>
                 </Field>
-                <Field label="Mobile number" error={errors.mobile} hint="Payment and quality alerts go here">
+                <Field label={t('Mobile number')} error={errors.mobile} hint={t('Payment and quality alerts go here')}>
                   <input className="input" inputMode="tel" value={form.mobile} onChange={set('mobile')} />
                 </Field>
-                <Field label="Preferred language">
+                <Field label={t('Preferred language')}>
                   <select className="input" value={form.language} onChange={set('language')}>
-                    <option>Sinhala</option>
-                    <option>Tamil</option>
-                    <option>English</option>
+                    {opts(["Sinhala","Tamil","English"])}
                   </select>
                 </Field>
-                <Field label="Address" className="sm:col-span-2">
+                <Field label={t('Address')} className="sm:col-span-2">
                   <input className="input" value={form.address} onChange={set('address')} />
                 </Field>
-                <Field label="District">
+                <Field label={t('District')}>
                   <input className="input" value={form.district} onChange={set('district')} />
                 </Field>
               </FormGrid>
@@ -162,7 +168,7 @@ export default function Onboarding() {
             {step === 1 && (
               <>
                 <FormGrid>
-                  <Field label="Collection center">
+                  <Field label={t('Collection center')}>
                     <select className="input" value={form.center} onChange={set('center')}>
                       {centers.map((c) => (
                         <option key={c.id} value={c.id}>
@@ -171,7 +177,7 @@ export default function Onboarding() {
                       ))}
                     </select>
                   </Field>
-                  <Field label="Collection route">
+                  <Field label={t('Collection route')}>
                     <select className="input" value={form.route} onChange={set('route')}>
                       {(centerRoutes.length ? centerRoutes : routes).map((r) => (
                         <option key={r.id} value={r.id}>
@@ -180,51 +186,44 @@ export default function Onboarding() {
                       ))}
                     </select>
                   </Field>
-                  <Field label="Land extent (acres)">
+                  <Field label={t('Land extent (acres)')}>
                     <input className="input num" inputMode="decimal" value={form.land} onChange={set('land')} />
                   </Field>
-                  <Field label="Pasture (acres)">
+                  <Field label={t('Pasture (acres)')}>
                     <input className="input num" inputMode="decimal" value={form.pasture} onChange={set('pasture')} />
                   </Field>
-                  <Field label="Total cattle">
+                  <Field label={t('Total cattle')}>
                     <input className="input num" inputMode="numeric" value={form.cattle} onChange={set('cattle')} />
                   </Field>
-                  <Field label="Milking cows">
+                  <Field label={t('Milking cows')}>
                     <input className="input num" inputMode="numeric" value={form.milking} onChange={set('milking')} />
                   </Field>
-                  <Field label="Main breed">
+                  <Field label={t('Main breed')}>
                     <select className="input" value={form.breed} onChange={set('breed')}>
-                      <option>Jersey cross</option>
-                      <option>Friesian cross</option>
-                      <option>Sahiwal cross</option>
-                      <option>Local</option>
+                      {opts(["Jersey cross","Friesian cross","Sahiwal cross","Local"])}
                     </select>
                   </Field>
-                  <Field label="Expected supply (L / day)">
+                  <Field label={t('Expected supply (L / day)')}>
                     <input className="input num" inputMode="decimal" value={form.expected} onChange={set('expected')} />
                   </Field>
-                  <Field label="Delivery">
+                  <Field label={t('Delivery')}>
                     <select className="input" value={form.delivery} onChange={set('delivery')}>
-                      <option>Morning and evening</option>
-                      <option>Morning only</option>
-                      <option>Evening only</option>
+                      {opts(["Morning and evening","Morning only","Evening only"])}
                     </select>
                   </Field>
-                  <Field label="Cooling facility">
+                  <Field label={t('Cooling facility')}>
                     <select className="input" value={form.cooling} onChange={set('cooling')}>
-                      <option>None</option>
-                      <option>Chiller</option>
-                      <option>Shared society chiller</option>
+                      {opts(["None","Chiller","Shared society chiller"])}
                     </select>
                   </Field>
                 </FormGrid>
-                <Field label="Farm location (address)" hint="House no., road, village / GN division, nearest town">
+                <Field label={t('Farm location (address)')} hint={t('House no., road, village / GN division, nearest town')}>
                   <textarea
                     className="input min-h-[88px] py-2"
                     rows={3}
                     value={form.farmAddress}
                     onChange={set('farmAddress')}
-                    placeholder="e.g. No. 18, Yaya 4, Hingurakgoda, Polonnaruwa"
+                    placeholder={t('e.g. No. 18, Yaya 4, Hingurakgoda, Polonnaruwa')}
                   />
                 </Field>
                 <div>
@@ -232,7 +231,7 @@ export default function Onboarding() {
                   <AttachmentGrid
                     value={attachments}
                     onChange={setAttachments}
-                    hint="Shed, herd, water source, land documents"
+                    hint={t('Shed, herd, water source, land documents')}
                     onReject={(m) => toast(m, 'error')}
                   />
                 </div>
@@ -241,29 +240,25 @@ export default function Onboarding() {
 
             {step === 2 && (
               <FormGrid>
-                <Field label="Payment method">
+                <Field label={t('Payment method')}>
                   <select className="input" value={form.payMethod} onChange={set('payMethod')}>
-                    <option>Bank transfer</option>
-                    <option>Society account</option>
-                    <option>Cash at center (approval needed)</option>
+                    {opts(["Bank transfer","Society account","Cash at center (approval needed)"])}
                   </select>
                 </Field>
-                <Field label="Bank">
+                <Field label={t('Bank')}>
                   <select className="input" value={form.bank} onChange={set('bank')}>
-                    <option>Bank of Ceylon</option>
-                    <option>People's Bank</option>
-                    <option>Hatton National Bank</option>
-                    <option>Sampath Bank</option>
-                    <option>Regional Development Bank</option>
+                    {["Bank of Ceylon", "People's Bank", "Hatton National Bank", "Sampath Bank", "Regional Development Bank"].map((b) => (
+                      <option key={b}>{b}</option>
+                    ))}
                   </select>
                 </Field>
-                <Field label="Branch">
+                <Field label={t('Branch')}>
                   <input className="input" value={form.branch} onChange={set('branch')} />
                 </Field>
-                <Field label="Account number" error={errors.account}>
-                  <input className="input num" inputMode="numeric" value={form.account} onChange={set('account')} placeholder="e.g. 0071234471" />
+                <Field label={t('Account number')} error={errors.account}>
+                  <input className="input num" inputMode="numeric" value={form.account} onChange={set('account')} placeholder={t('e.g. 0071234471')} />
                 </Field>
-                <Field label="Account holder name">
+                <Field label={t('Account holder name')}>
                   <input className="input" value={form.accountName} onChange={set('accountName')} />
                 </Field>
               </FormGrid>
@@ -271,27 +266,25 @@ export default function Onboarding() {
 
             {step === 3 && (
               <FormGrid>
-                <Field label="Price template" className="sm:col-span-2">
+                <Field label={t('Price template')} className="sm:col-span-2">
                   <select className="input" value={form.template} onChange={set('template')}>
                     {activeTemplateNames().map((name) => (
                       <option key={name}>{name}</option>
                     ))}
                   </select>
                 </Field>
-                <Field label="Starting category" hint="Reviewed every quarter">
+                <Field label={t('Starting category')} hint={t('Reviewed every quarter')}>
                   <select className="input" value={form.category} onChange={set('category')}>
-                    {categories.map((c) => (
-                      <option key={c}>{c}</option>
-                    ))}
+                    {opts(categories)}
                   </select>
                 </Field>
-                <Field label="Valid from">
+                <Field label={t('Valid from')}>
                   <input type="date" className="input" value={form.validFrom} onChange={set('validFrom')} />
                 </Field>
-                <Field label="Valid to">
+                <Field label={t('Valid to')}>
                   <input type="date" className="input" value={form.validTo} onChange={set('validTo')} />
                 </Field>
-                <Field label="Minimum supply (L / day)">
+                <Field label={t('Minimum supply (L / day)')}>
                   <input className="input num" value={form.minLitres} onChange={set('minLitres')} />
                 </Field>
               </FormGrid>
@@ -303,13 +296,13 @@ export default function Onboarding() {
                   <li key={d.key} className="flex flex-wrap items-center gap-3 px-4 py-3">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium">
-                        {d.name} {d.required && <span className="text-red-600">*</span>}
+                        {t(d.name)} {d.required && <span className="text-red-600">*</span>}
                       </p>
-                      <p className="truncate text-xs text-zinc-500">{docs[d.key] ?? 'PDF, JPG or PNG up to 10 MB'}</p>
+                      <p className="truncate text-xs text-zinc-500">{docs[d.key] ?? t('PDF, JPG or PNG up to 10 MB')}</p>
                     </div>
                     {docs[d.key] ? <StatusBadge status="Uploaded" /> : <StatusBadge status={d.required ? 'Missing' : 'Optional'} />}
                     <label className="btn btn-secondary btn-sm cursor-pointer">
-                      <UploadCloud className="h-3.5 w-3.5" /> {docs[d.key] ? 'Replace' : 'Upload'}
+                      <UploadCloud className="h-3.5 w-3.5" /> {docs[d.key] ? t('Replace') : t('Upload')}
                       <input
                         type="file"
                         className="sr-only"
@@ -328,10 +321,10 @@ export default function Onboarding() {
             {step === 5 && (
               <div className="grid gap-6 lg:grid-cols-2">
                 {[
-                  { title: 'Personal', items: [['Name', form.fullName], ['NIC', form.nic], ['Mobile', form.mobile], ['Language', form.language], ['Address', form.address]] },
-                  { title: 'Farm', items: [['Center', centers.find((c) => c.id === form.center)?.name ?? ''], ['Route', form.route], ['Herd', `${form.cattle} cattle, ${form.milking} milking`], ['Expected', `${form.expected} L / day`], ['Location', form.farmAddress || '—'], ['Attachments', `${attachments.length} file(s)`]] },
-                  { title: 'Bank', items: [['Method', form.payMethod], ['Bank', `${form.bank}, ${form.branch}`], ['Account', form.account || '—'], ['Holder', form.accountName]] },
-                  { title: 'Contract', items: [['Template', form.template], ['Category', form.category], ['Valid', `${form.validFrom} to ${form.validTo}`], ['Documents', `${docsDone} of ${docList.length}`]] },
+                  { title: t('Personal'), items: [[t('Name'), form.fullName], ['NIC', form.nic], [t('Mobile'), form.mobile], [t('Language'), t(form.language)], [t('Address'), form.address]] },
+                  { title: t('Farm'), items: [[t('Center'), centers.find((c) => c.id === form.center)?.name ?? ''], [t('Route'), form.route], [t('Herd'), t('{cattle} cattle, {milking} milking', { cattle: form.cattle, milking: form.milking })], [t('Expected'), t('{n} L / day', { n: form.expected })], [t('Location'), form.farmAddress || '—'], [t('Attachments'), t('{n} file(s)', { n: attachments.length })]] },
+                  { title: t('Bank'), items: [[t('Method'), t(form.payMethod)], [t('Bank'), `${form.bank}, ${form.branch}`], [t('Account'), form.account || '—'], [t('Holder'), form.accountName]] },
+                  { title: t('Contract'), items: [[t('Template'), form.template], [t('Category'), t(form.category)], [t('Valid'), t('{from} to {to}', { from: form.validFrom, to: form.validTo })], [t('Documents'), t('{n} of {total}', { n: docsDone, total: docList.length })]] },
                 ].map((s) => (
                   <div key={s.title} className="rounded-lg border border-zinc-200 p-4">
                     <h3 className="mb-3 text-sm font-semibold">{s.title}</h3>
@@ -343,15 +336,15 @@ export default function Onboarding() {
 
             <div className="flex flex-wrap justify-between gap-3 border-t border-zinc-100 pt-5">
               <button className="btn btn-secondary" disabled={step === 0} onClick={() => setStep((s) => s - 1)}>
-                <ArrowLeft className="h-4 w-4" /> Back
+                <ArrowLeft className="h-4 w-4" /> {t('Back')}
               </button>
               {step < steps.length - 1 ? (
                 <button className="btn btn-primary" onClick={next}>
-                  Next: {steps[step + 1]} <ArrowRight className="h-4 w-4" />
+                  {t('Next: {step}', { step: stepLabels[step + 1] })} <ArrowRight className="h-4 w-4" />
                 </button>
               ) : (
                 <button className="btn btn-primary" onClick={submit}>
-                  <Send className="h-4 w-4" /> Submit for approval
+                  <Send className="h-4 w-4" /> {t('Submit for approval')}
                 </button>
               )}
             </div>
@@ -360,7 +353,7 @@ export default function Onboarding() {
 
         <div className="flex flex-col gap-6">
           <Card>
-            <CardHeader title="Verification" subtitle="Completed by the field officer" />
+            <CardHeader title={t('Verification')} subtitle={t('Completed by the field officer')} />
             <CardBody className="space-y-3">
               {(
                 [
@@ -377,26 +370,26 @@ export default function Onboarding() {
                     checked={checks[k]}
                     onChange={() => setChecks((c) => ({ ...c, [k]: !c[k] }))}
                   />
-                  {label}
+                  {t(label)}
                 </label>
               ))}
             </CardBody>
           </Card>
           <Card>
-            <CardHeader title="Documents" subtitle={`${docsDone} of ${docList.length} uploaded`} />
+            <CardHeader title={t('Documents')} subtitle={t('{n} of {total} uploaded', { n: docsDone, total: docList.length })} />
             <ul className="divide-y divide-zinc-100">
               {docList.map((d) => (
                 <li key={d.key} className="flex items-center justify-between gap-2 px-5 py-2.5 text-sm">
                   <span className="flex items-center gap-2">
                     <CheckCircle2 className={docs[d.key] ? 'h-4 w-4 text-emerald-600' : 'h-4 w-4 text-zinc-300'} />
-                    {d.name}
+                    {t(d.name)}
                   </span>
                 </li>
               ))}
             </ul>
           </Card>
           <Card>
-            <CardHeader title="Waiting in onboarding" />
+            <CardHeader title={t('Waiting in onboarding')} />
             <ul className="divide-y divide-zinc-100 text-sm">
               {[
                 ['S. Tharshini', 'Ampara CC', 'Investigating'],

@@ -1,6 +1,7 @@
 import clsx from 'clsx';
 import type { ReactNode } from 'react';
 import { toneFor } from '@/lib/status';
+import { useLang } from '@/i18n/LanguageContext';
 
 export type Tone = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'brand';
 
@@ -39,17 +40,19 @@ export function Badge({
 }
 
 export function StatusBadge({ status, className }: { status: string; className?: string }) {
+  const { t } = useLang();
   return (
     <Badge tone={toneFor(status)} dot className={className}>
-      {status}
+      {t(status)}
     </Badge>
   );
 }
 
 /** Response-target badge for disputes: hours left, or hours overdue when negative. */
 export function SlaBadge({ hours, resolved }: { hours: number; resolved?: boolean }) {
-  if (resolved) return <Badge tone="neutral">Closed</Badge>;
-  if (hours < 0) return <Badge tone="danger" dot>{Math.abs(hours)} h over</Badge>;
-  if (hours < 24) return <Badge tone="warning" dot>{hours} h left</Badge>;
-  return <Badge tone="success" dot>{hours} h left</Badge>;
+  const { t } = useLang();
+  if (resolved) return <Badge tone="neutral">{t("Closed")}</Badge>;
+  if (hours < 0) return <Badge tone="danger" dot>{t("{n} h over", { n: Math.abs(hours) })}</Badge>;
+  if (hours < 24) return <Badge tone="warning" dot>{t("{n} h left", { n: hours })}</Badge>;
+  return <Badge tone="success" dot>{t("{n} h left", { n: hours })}</Badge>;
 }

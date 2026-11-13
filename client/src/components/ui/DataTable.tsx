@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import type { ReactNode } from 'react';
+import { useLang } from '@/i18n/LanguageContext';
 
 export interface Column<T> {
   key: string;
@@ -18,7 +19,7 @@ export function DataTable<T>({
   rowKey,
   onRowClick,
   selectedKey,
-  empty = 'No records match these filters.',
+  empty,
   footer,
   dense,
 }: {
@@ -31,6 +32,7 @@ export function DataTable<T>({
   footer?: ReactNode;
   dense?: boolean;
 }) {
+  const { t } = useLang();
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full text-sm">
@@ -54,7 +56,7 @@ export function DataTable<T>({
           {rows.length === 0 ? (
             <tr>
               <td colSpan={columns.length} className="px-4 py-12 text-center text-sm text-zinc-500">
-                {empty}
+                {empty ?? t('No records match these filters.')}
               </td>
             </tr>
           ) : (

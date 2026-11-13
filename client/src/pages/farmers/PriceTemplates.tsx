@@ -21,7 +21,9 @@ import {
 } from '@/data/priceTemplates';
 import { num } from '@/lib/format';
 import { useToast } from '@/context/ToastContext';
+import { useLang } from '@/i18n/LanguageContext';
 
+type Tr = (text: string, vars?: Record<string, string | number>) => string;
 type StatusFilter = 'all' | TemplateStatus;
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const fmtDate = (iso: string) => {
@@ -30,6 +32,46 @@ const fmtDate = (iso: string) => {
 };
 const TODAY = '2026-11-12';
 const rs = (v: number) => `Rs ${v.toFixed(2)}`;
+
+/* ───────────── Display translation helpers (data stays in English) ───────────── */
+
+/** Template names follow "Category · Region Year"; only the category word is translated. */
+function trName(name: string, t: Tr) {
+  const copy = name.endsWith(' (copy)');
+  const base = copy ? name.slice(0, -' (copy)'.length) : name;
+  const m = /^(Platinum|Gold|Silver|Standard|Society bulk) · (.+)$/.exec(base);
+  const out = m ? `${t(m[1])} · ${m[2]}` : base;
+  return copy ? t('{name} (copy)', { name: out }) : out;
+}
+
+function trHistory(text: string, t: Tr) {
+  let m = /^Created v(\d+) from v(\d+)\. FAT (\S+) row \+Rs ([\d.]+) \/ L\.$/.exec(text);
+  if (m) return t('Created v{v} from v{from}. FAT {band} row +Rs {amt} / L.', { v: m[1], from: m[2], band: m[3], amt: m[4] });
+  m = /^Created v(\d+) from v(\d+)\.$/.exec(text);
+  if (m) return t('Created v{v} from v{from}.', { v: m[1], from: m[2] });
+  m = /^Created v(\d+) from (.+) \(\+Rs ([\d.]+) \/ L\)\.$/.exec(text);
+  if (m) return t('Created v{v} from {name} (+Rs {amt} / L).', { v: m[1], name: trName(m[2], t), amt: m[3] });
+  m = /^Draft created from (.+) \(\+Rs ([\d.]+) \/ L\)\.$/.exec(text);
+  if (m) return t('Draft created from {name} (+Rs {amt} / L).', { name: trName(m[1], t), amt: m[2] });
+  m = /^Approved v(\d+)\. Effective (.+)\.$/.exec(text);
+  if (m) return t('Approved v{v}. Effective {date}.', { v: m[1], date: m[2] });
+  m = /^Approved v(\d+)\.$/.exec(text);
+  if (m) return t('Approved v{v}.', { v: m[1] });
+  m = /^Submitted for approval \((AP-[\w-]+)\)\.$/.exec(text);
+  if (m) return t('Submitted for approval ({ref}).', { ref: m[1] });
+  m = /^Copied from (.+) v(\d+)\.$/.exec(text);
+  if (m) return t('Copied from {name} v{v}.', { name: trName(m[1], t), v: m[2] });
+  return t(text);
+}
+
+function trWho(who: string, t: Tr) {
+  const m = /^(.+) \(Procurement\)$/.exec(who);
+  if (m) return `${m[1]} (${t('Procurement')})`;
+  if (who === 'General manager') return t('General manager');
+  if (who === 'System') return t('MILCO system');
+  if (who === 'You') return t('You');
+  return who;
+}
 
 /* ───────────── Editor draft (strings so inputs can be cleared while typing) ───────────── */
 
@@ -49,27 +91,27 @@ interface Draft {
   minSnf: string;
 }
 
-const toDraft = (t: PriceTemplate): Draft => ({
-  name: t.name,
-  region: t.region,
-  category: t.category,
-  validFrom: t.validFrom,
-  validTo: t.validTo,
-  notes: t.notes,
-  matrix: t.matrix.map((r) => r.map(String)),
-  premium: String(t.premium),
-  chillBonus: String(t.chillBonus),
-  chillTemp: String(t.chillTemp),
-  flagTemp: String(t.flagTemp),
-  minFat: String(t.minFat),
-  minSnf: String(t.minSnf),
+const toDraft = (tpl: PriceTemplate): Draft => ({
+  name: tpl.name,
+  region: tpl.region,
+  category: tpl.category,
+  validFrom: tpl.validFrom,
+  validTo: tpl.validTo,
+  notes: tpl.notes,
+  matrix: tpl.matrix.map((r) => r.map(String)),
+  premium: String(tpl.premium),
+  chillBonus: String(tpl.chillBonus),
+  chillTemp: String(tpl.chillTemp),
+  flagTemp: String(tpl.flagTemp),
+  minFat: String(tpl.minFat),
+  minSnf: String(tpl.minSnf),
 });
 
 const n = (s: string) => (s.trim() === '' ? NaN : Number(s));
 
-function fromDraft(t: PriceTemplate, d: Draft): PriceTemplate {
+function fromDraft(tpl: PriceTemplate, d: Draft): PriceTemplate {
   return {
-    ...t,
+    ...tpl,
     name: d.name.trim(),
     region: d.region,
     category: d.category,
@@ -86,26 +128,28 @@ function fromDraft(t: PriceTemplate, d: Draft): PriceTemplate {
   };
 }
 
-function validate(d: Draft) {
+function validate(d: Draft, t: Tr) {
   const errors: Record<string, string> = {};
-  if (!d.name.trim()) errors.name = 'Enter a template name.';
-  if (!d.validFrom) errors.validFrom = 'Choose the start date.';
-  if (!d.validTo) errors.validTo = 'Choose the end date.';
-  if (d.validFrom && d.validTo && d.validFrom > d.validTo) errors.validTo = 'End date must be after the start date.';
-  if (d.matrix.some((r) => r.some((v) => !(n(v) > 0)))) errors.matrix = 'Every price must be a number above zero.';
+  if (!d.name.trim()) errors.name = t('Enter a template name.');
+  if (!d.validFrom) errors.validFrom = t('Choose the start date.');
+  if (!d.validTo) errors.validTo = t('Choose the end date.');
+  if (d.validFrom && d.validTo && d.validFrom > d.validTo) errors.validTo = t('End date must be after the start date.');
+  if (d.matrix.some((r) => r.some((v) => !(n(v) > 0)))) errors.matrix = t('Every price must be a number above zero.');
   for (const k of ['premium', 'chillBonus', 'chillTemp', 'flagTemp', 'minFat', 'minSnf'] as const) {
-    if (Number.isNaN(n(d[k])) || n(d[k]) < 0) errors[k] = 'Enter a number (0 or more).';
+    if (Number.isNaN(n(d[k])) || n(d[k]) < 0) errors[k] = t('Enter a number (0 or more).');
   }
   return errors;
 }
 
 /** Richer milk should never pay less: warn when a price drops to the right or downwards. */
-function monotonicWarnings(m: string[][]) {
+function monotonicWarnings(m: string[][], t: Tr) {
   const out: string[] = [];
   m.forEach((row, r) =>
     row.forEach((v, c) => {
-      if (c > 0 && n(v) < n(row[c - 1])) out.push(`FAT ${FAT_BANDS[r]}: SNF ${SNF_BANDS[c]} pays less than ${SNF_BANDS[c - 1]}`);
-      if (r > 0 && n(v) < n(m[r - 1][c])) out.push(`SNF ${SNF_BANDS[c]}: FAT ${FAT_BANDS[r]} pays less than ${FAT_BANDS[r - 1]}`);
+      if (c > 0 && n(v) < n(row[c - 1]))
+        out.push(t('FAT {fat}: SNF {snf} pays less than {prev}', { fat: FAT_BANDS[r], snf: SNF_BANDS[c], prev: SNF_BANDS[c - 1] }));
+      if (r > 0 && n(v) < n(m[r - 1][c]))
+        out.push(t('SNF {snf}: FAT {fat} pays less than {prev}', { snf: SNF_BANDS[c], fat: FAT_BANDS[r], prev: FAT_BANDS[r - 1] }));
     }),
   );
   return out;
@@ -114,6 +158,7 @@ function monotonicWarnings(m: string[][]) {
 /* ───────────── Page ───────────── */
 
 export default function PriceTemplates() {
+  const { t } = useLang();
   const toast = useToast();
   const regions = useRegionNames();
   const [templates, setTemplates] = useState<PriceTemplate[]>(seed);
@@ -126,23 +171,23 @@ export default function PriceTemplates() {
   const rows = useMemo(() => {
     const term = q.trim().toLowerCase();
     return templates.filter(
-      (t) =>
-        (status === 'all' || t.status === status) &&
-        (!region || t.region === region) &&
-        (!term || [t.name, t.id].some((v) => v.toLowerCase().includes(term))),
+      (tpl) =>
+        (status === 'all' || tpl.status === status) &&
+        (!region || tpl.region === region) &&
+        (!term || [tpl.name, tpl.id].some((v) => v.toLowerCase().includes(term))),
     );
   }, [templates, status, q, region]);
 
-  const sel = templates.find((t) => t.id === selId);
-  const count = (s: StatusFilter) => (s === 'all' ? templates.length : templates.filter((t) => t.status === s).length);
+  const sel = templates.find((tpl) => tpl.id === selId);
+  const count = (s: StatusFilter) => (s === 'all' ? templates.length : templates.filter((tpl) => tpl.status === s).length);
 
   const select = (id: string) => {
     setSelId(id);
     requestAnimationFrame(() => editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
 
-  const upsert = (t: PriceTemplate) =>
-    setTemplates((all) => (all.some((x) => x.id === t.id) ? all.map((x) => (x.id === t.id ? t : x)) : [t, ...all]));
+  const upsert = (tpl: PriceTemplate) =>
+    setTemplates((all) => (all.some((x) => x.id === tpl.id) ? all.map((x) => (x.id === tpl.id ? tpl : x)) : [tpl, ...all]));
 
   const createFrom = (src: PriceTemplate, mode: 'version' | 'clone') => {
     const id = `PT-NEW-${Date.now().toString(36).toUpperCase()}`;
@@ -150,7 +195,7 @@ export default function PriceTemplates() {
       ...src,
       id,
       name: mode === 'clone' ? `${src.name} (copy)` : src.name,
-      version: mode === 'version' ? Math.max(...templates.filter((t) => t.name === src.name).map((t) => t.version)) + 1 : 1,
+      version: mode === 'version' ? Math.max(...templates.filter((x) => x.name === src.name).map((x) => x.version)) + 1 : 1,
       status: 'Draft',
       validFrom: mode === 'version' ? TODAY : src.validFrom,
       farmers: 0,
@@ -163,11 +208,14 @@ export default function PriceTemplates() {
     upsert(next);
     setStatus('all');
     select(id);
-    toast(mode === 'version' ? `Draft v${next.version} created. Edit prices, then submit for approval.` : 'Copy created as a draft.', 'info');
+    toast(
+      mode === 'version' ? t('Draft v{v} created. Edit prices, then submit for approval.', { v: next.version }) : t('Copy created as a draft.'),
+      'info',
+    );
   };
 
   const createNew = () => {
-    const std = templates.find((t) => t.id === 'PT-NC-STD-26') ?? templates[0];
+    const std = templates.find((x) => x.id === 'PT-NC-STD-26') ?? templates[0];
     const id = `PT-NEW-${Date.now().toString(36).toUpperCase()}`;
     upsert({
       ...std,
@@ -192,12 +240,12 @@ export default function PriceTemplates() {
   return (
     <>
       <PageHeader
-        breadcrumb={[{ label: 'Farmers' }, { label: 'Price templates' }]}
-        title="Price templates"
-        description="Milk price per litre by FAT and SNF, category premium and quality rules. Every delivery is priced with the farmer's template."
+        breadcrumb={[{ label: t('Farmers') }, { label: t('Price templates') }]}
+        title={t('Price templates')}
+        description={t("Milk price per litre by FAT and SNF, category premium and quality rules. Every delivery is priced with the farmer's template.")}
         actions={
           <button className="btn btn-primary" onClick={createNew}>
-            <Plus className="h-4 w-4" /> New template
+            <Plus className="h-4 w-4" /> {t('New template')}
           </button>
         }
       />
@@ -207,11 +255,11 @@ export default function PriceTemplates() {
           value={status}
           onChange={setStatus}
           options={[
-            { id: 'all', label: 'All', count: count('all') },
-            { id: 'Active', label: 'Active', count: count('Active') },
-            { id: 'Pending approval', label: 'Pending approval', count: count('Pending approval') },
-            { id: 'Draft', label: 'Draft', count: count('Draft') },
-            { id: 'Expired', label: 'Expired', count: count('Expired') },
+            { id: 'all', label: t('All'), count: count('all') },
+            { id: 'Active', label: t('Active'), count: count('Active') },
+            { id: 'Pending approval', label: t('Pending approval'), count: count('Pending approval') },
+            { id: 'Draft', label: t('Draft'), count: count('Draft') },
+            { id: 'Expired', label: t('Expired'), count: count('Expired') },
           ]}
         />
       </div>
@@ -219,40 +267,40 @@ export default function PriceTemplates() {
       <Card className="mb-6">
         <div className="grid gap-3 border-b border-zinc-100 p-4 sm:grid-cols-[1fr_220px]">
           <label className="relative">
-            <span className="sr-only">Search templates</span>
+            <span className="sr-only">{t('Search templates')}</span>
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-            <input className="input pl-9" placeholder="Template name or code…" value={q} onChange={(e) => setQ(e.target.value)} />
+            <input className="input pl-9" placeholder={t('Template name or code…')} value={q} onChange={(e) => setQ(e.target.value)} />
           </label>
-          <select className="input" aria-label="Region" value={region} onChange={(e) => setRegion(e.target.value)}>
-            <option value="">Any region</option>
-            <option>All regions</option>
+          <select className="input" aria-label={t('Region')} value={region} onChange={(e) => setRegion(e.target.value)}>
+            <option value="">{t('Any region')}</option>
+            <option value="All regions">{t('All regions')}</option>
             {regions.map((r) => <option key={r}>{r}</option>)}
           </select>
         </div>
         <DataTable<PriceTemplate>
           rows={rows}
-          rowKey={(t) => t.id}
+          rowKey={(tpl) => tpl.id}
           selectedKey={selId}
-          onRowClick={(t) => select(t.id)}
-          empty="No price templates match these filters."
+          onRowClick={(tpl) => select(tpl.id)}
+          empty={t('No price templates match these filters.')}
           columns={[
             {
               key: 'name',
-              header: 'Template',
-              render: (t) => (
+              header: t('Template'),
+              render: (tpl) => (
                 <div>
-                  <div className="font-medium">{t.name || <span className="text-zinc-500">Untitled draft</span>}</div>
-                  <div className="num text-xs text-zinc-500">{t.id} · v{t.version}</div>
+                  <div className="font-medium">{tpl.name ? trName(tpl.name, t) : <span className="text-zinc-500">{t('Untitled draft')}</span>}</div>
+                  <div className="num text-xs text-zinc-500">{tpl.id} · v{tpl.version}</div>
                 </div>
               ),
             },
-            { key: 'region', header: 'Region', render: (t) => t.region || '—' },
-            { key: 'cat', header: 'Category', render: (t) => <Badge tone={t.category === 'Gold' || t.category === 'Platinum' ? 'brand' : 'neutral'}>{t.category}</Badge> },
-            { key: 'valid', header: 'Valid', render: (t) => <span className="text-xs">{fmtDate(t.validFrom)} – {fmtDate(t.validTo)}</span> },
-            { key: 'range', header: 'Base Rs / L', align: 'right', mono: true, render: (t) => `${Math.min(...t.matrix.flat())}–${Math.max(...t.matrix.flat())}` },
-            { key: 'prem', header: 'Premium', align: 'right', mono: true, render: (t) => (t.premium ? `+${t.premium.toFixed(2)}` : '—') },
-            { key: 'farmers', header: 'Farmers', align: 'right', mono: true, render: (t) => num(t.farmers) },
-            { key: 'status', header: 'Status', render: (t) => <StatusBadge status={t.status} /> },
+            { key: 'region', header: t('Region'), render: (tpl) => (tpl.region === 'All regions' ? t('All regions') : tpl.region || '—') },
+            { key: 'cat', header: t('Category'), render: (tpl) => <Badge tone={tpl.category === 'Gold' || tpl.category === 'Platinum' ? 'brand' : 'neutral'}>{t(tpl.category)}</Badge> },
+            { key: 'valid', header: t('Valid'), render: (tpl) => <span className="text-xs">{fmtDate(tpl.validFrom)} – {fmtDate(tpl.validTo)}</span> },
+            { key: 'range', header: t('Base Rs / L'), align: 'right', mono: true, render: (tpl) => `${Math.min(...tpl.matrix.flat())}–${Math.max(...tpl.matrix.flat())}` },
+            { key: 'prem', header: t('Premium'), align: 'right', mono: true, render: (tpl) => (tpl.premium ? `+${tpl.premium.toFixed(2)}` : '—') },
+            { key: 'farmers', header: t('Farmers'), align: 'right', mono: true, render: (tpl) => num(tpl.farmers) },
+            { key: 'status', header: t('Status'), render: (tpl) => <StatusBadge status={tpl.status} /> },
           ]}
         />
       </Card>
@@ -262,22 +310,22 @@ export default function PriceTemplates() {
           <TemplateEditor
             key={sel.id}
             template={sel}
-            basis={templates.find((t) => t.name === sel.name && t.status === 'Active' && t.id !== sel.id)}
-            onSave={(t, msg) => {
-              upsert(t);
+            basis={templates.find((x) => x.name === sel.name && x.status === 'Active' && x.id !== sel.id)}
+            onSave={(tpl, msg) => {
+              upsert(tpl);
               toast(msg);
             }}
             onDelete={() => {
-              setTemplates((all) => all.filter((t) => t.id !== sel.id));
-              setSelId(templates.find((t) => t.id !== sel.id)?.id ?? '');
-              toast('Draft deleted.');
+              setTemplates((all) => all.filter((x) => x.id !== sel.id));
+              setSelId(templates.find((x) => x.id !== sel.id)?.id ?? '');
+              toast(t('Draft deleted.'));
             }}
             onNewVersion={() => createFrom(sel, 'version')}
             onClone={() => createFrom(sel, 'clone')}
           />
         ) : (
           <Card>
-            <EmptyState title="Select a template" text="Choose a price template above to view or edit its prices." />
+            <EmptyState title={t('Select a template')} text={t('Choose a price template above to view or edit its prices.')} />
           </Card>
         )}
       </div>
@@ -288,7 +336,7 @@ export default function PriceTemplates() {
 /* ───────────── Editor ───────────── */
 
 function TemplateEditor({
-  template: t,
+  template: tpl,
   basis,
   onSave,
   onDelete,
@@ -298,16 +346,17 @@ function TemplateEditor({
   template: PriceTemplate;
   /** Currently active version with the same name — changed cells are highlighted against it. */
   basis?: PriceTemplate;
-  onSave: (t: PriceTemplate, message: string) => void;
+  onSave: (tpl: PriceTemplate, message: string) => void;
   onDelete: () => void;
   onNewVersion: () => void;
   onClone: () => void;
 }) {
-  const editable = t.status === 'Draft';
+  const { t } = useLang();
+  const editable = tpl.status === 'Draft';
   const regions = useRegionNames();
   // Template categories = active farmer categories + bulk pricing for dairy societies
   const categories = [...useCategoryNames(), 'Society'];
-  const [d, setD] = useState<Draft>(() => toDraft(t));
+  const [d, setD] = useState<Draft>(() => toDraft(tpl));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [adjust, setAdjust] = useState('1');
   const [test, setTest] = useState({ fat: '4.1', snf: '8.6', temp: '6' });
@@ -318,14 +367,14 @@ function TemplateEditor({
   const shiftAll = (by: number) =>
     setD((x) => ({ ...x, matrix: x.matrix.map((row) => row.map((v) => (Number.isNaN(n(v)) ? v : String(+(n(v) + by).toFixed(2))))) }));
 
-  const warnings = monotonicWarnings(d.matrix);
-  const current = fromDraft(t, d);
+  const warnings = monotonicWarnings(d.matrix, t);
+  const current = fromDraft(tpl, d);
   const preview = templateRate(current, Number(test.fat), Number(test.snf), Number(test.temp));
 
-  const stamp = (text: string) => [...t.history, { when: fmtDate(TODAY), who: 'You', text }];
+  const stamp = (text: string) => [...tpl.history, { when: fmtDate(TODAY), who: 'You', text }];
 
   const save = (submit: boolean) => {
-    const e = validate(d);
+    const e = validate(d, t);
     setErrors(e);
     if (Object.keys(e).length) {
       requestAnimationFrame(() =>
@@ -333,54 +382,54 @@ function TemplateEditor({
       );
       return;
     }
-    const next = fromDraft(t, d);
+    const next = fromDraft(tpl, d);
     if (submit) {
       onSave(
         { ...next, status: 'Pending approval', updatedBy: 'You', updatedAt: TODAY, history: stamp('Submitted for approval (General manager).') },
-        `${next.name} v${next.version} sent to the General manager for approval.`,
+        t('{name} v{v} sent to the General manager for approval.', { name: trName(next.name, t), v: next.version }),
       );
     } else {
-      onSave({ ...next, updatedBy: 'You', updatedAt: TODAY, history: stamp('Draft saved.') }, 'Draft saved.');
+      onSave({ ...next, updatedBy: 'You', updatedAt: TODAY, history: stamp('Draft saved.') }, t('Draft saved.'));
     }
   };
 
   const actions =
-    t.status === 'Draft' ? (
+    tpl.status === 'Draft' ? (
       <>
         <button className="btn btn-ghost text-red-700 hover:bg-red-50" onClick={onDelete}>
-          <Trash2 className="h-4 w-4" /> Delete draft
+          <Trash2 className="h-4 w-4" /> {t('Delete draft')}
         </button>
         <button className="btn btn-secondary" onClick={() => save(false)}>
-          <Save className="h-4 w-4" /> Save draft
+          <Save className="h-4 w-4" /> {t('Save draft')}
         </button>
         <button className="btn btn-primary" onClick={() => save(true)}>
-          <Send className="h-4 w-4" /> Submit for approval
+          <Send className="h-4 w-4" /> {t('Submit for approval')}
         </button>
       </>
-    ) : t.status === 'Pending approval' ? (
+    ) : tpl.status === 'Pending approval' ? (
       <>
         <button
           className="btn btn-secondary"
-          onClick={() => onSave({ ...t, status: 'Draft', history: stamp('Withdrawn from approval for changes.') }, 'Withdrawn. You can edit the draft again.')}
+          onClick={() => onSave({ ...tpl, status: 'Draft', history: stamp('Withdrawn from approval for changes.') }, t('Withdrawn. You can edit the draft again.'))}
         >
-          <Undo2 className="h-4 w-4" /> Withdraw to draft
+          <Undo2 className="h-4 w-4" /> {t('Withdraw to draft')}
         </button>
         <Link to="/approvals" className="btn btn-primary">
-          Open approvals
+          {t('Open approvals')}
         </Link>
       </>
-    ) : t.status === 'Active' ? (
+    ) : tpl.status === 'Active' ? (
       <>
         <button className="btn btn-secondary" onClick={onClone}>
-          <CopyPlus className="h-4 w-4" /> Copy as new template
+          <CopyPlus className="h-4 w-4" /> {t('Copy as new template')}
         </button>
         <button className="btn btn-primary" onClick={onNewVersion}>
-          <GitBranchPlus className="h-4 w-4" /> Change prices (new version)
+          <GitBranchPlus className="h-4 w-4" /> {t('Change prices (new version)')}
         </button>
       </>
     ) : (
       <button className="btn btn-secondary" onClick={onClone}>
-        <CopyPlus className="h-4 w-4" /> Copy as new template
+        <CopyPlus className="h-4 w-4" /> {t('Copy as new template')}
       </button>
     );
 
@@ -390,23 +439,26 @@ function TemplateEditor({
         <div className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             <div className="mb-1 flex flex-wrap items-center gap-2">
-              <StatusBadge status={t.status} />
+              <StatusBadge status={tpl.status} />
               <span className="num text-xs text-zinc-500">
-                {t.id} · version {t.version} · updated {fmtDate(t.updatedAt)} by {t.updatedBy}
+                {t('{id} · version {v} · updated {date} by {who}', { id: tpl.id, v: tpl.version, date: fmtDate(tpl.updatedAt), who: trWho(tpl.updatedBy, t) })}
               </span>
             </div>
-            <h2 className="truncate text-lg font-semibold">{d.name || 'Untitled draft'}</h2>
+            <h2 className="truncate text-lg font-semibold">{d.name ? trName(d.name, t) : t('Untitled draft')}</h2>
           </div>
           <div className="flex flex-wrap gap-2">{actions}</div>
         </div>
         {!editable && (
           <p className="flex items-start gap-2 border-t border-zinc-100 bg-zinc-50 px-5 py-3 text-sm text-zinc-600">
             <Info className="mt-0.5 h-4 w-4 shrink-0" />
-            {t.status === 'Active'
-              ? `Active templates are locked so past payments stay traceable. ${num(t.farmers)} farmers are paid with this template. To change prices, create a new version — it replaces this one from its start date after approval.`
-              : t.status === 'Pending approval'
-                ? 'Waiting for General manager approval. Withdraw it to make changes.'
-                : 'This template has expired. Farmers still linked to it should have their contracts renewed.'}
+            {tpl.status === 'Active'
+              ? t(
+                  'Active templates are locked so past payments stay traceable. {n} farmers are paid with this template. To change prices, create a new version — it replaces this one from its start date after approval.',
+                  { n: num(tpl.farmers) },
+                )
+              : tpl.status === 'Pending approval'
+                ? t('Waiting for General manager approval. Withdraw it to make changes.')
+                : t('This template has expired. Farmers still linked to it should have their contracts renewed.')}
           </p>
         )}
       </Card>
@@ -414,14 +466,14 @@ function TemplateEditor({
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
           <Card>
-            <CardHeader title="General" />
+            <CardHeader title={t('General')} />
             <CardBody>
               <fieldset disabled={!editable} className="contents">
                 <FormGrid>
-                  <Field label="Template name" error={errors.name} className="sm:col-span-2" hint="Category · Region · Year, e.g. Gold · North Central 2027">
+                  <Field label={t('Template name')} error={errors.name} className="sm:col-span-2" hint={t('Category · Region · Year, e.g. Gold · North Central 2027')}>
                     <input className="input" value={d.name} onChange={(e) => set('name', e.target.value)} />
                   </Field>
-                  <Field label="Category" hint="Sets the default category premium">
+                  <Field label={t('Category')} hint={t('Sets the default category premium')}>
                     <select
                       className="input"
                       value={d.category}
@@ -431,24 +483,29 @@ function TemplateEditor({
                         setD((x) => ({ ...x, category: cat, premium: def !== undefined ? String(def) : x.premium }));
                       }}
                     >
-                      {(categories.includes(d.category) ? categories : [d.category, ...categories]).map((c) => <option key={c}>{c}</option>)}
+                      {(categories.includes(d.category) ? categories : [d.category, ...categories]).map((c) => (
+                        <option key={c} value={c}>
+                          {t(c)}
+                        </option>
+                      ))}
                     </select>
                   </Field>
-                  <Field label="Region">
+                  <Field label={t('Region')}>
                     <select className="input" value={d.region} onChange={(e) => set('region', e.target.value)}>
-                      <option value="">Choose a region…</option>
-                      <option>All regions</option>
+                      <option value="">{t('Choose a region…')}</option>
+                      <option value="All regions">{t('All regions')}</option>
                       {(d.region && d.region !== 'All regions' && !regions.includes(d.region) ? [d.region, ...regions] : regions).map((r) => <option key={r}>{r}</option>)}
                     </select>
                   </Field>
-                  <Field label="Valid from" error={errors.validFrom}>
+                  <Field label={t('Valid from')} error={errors.validFrom}>
                     <input type="date" className="input" value={d.validFrom} onChange={(e) => set('validFrom', e.target.value)} />
                   </Field>
-                  <Field label="Valid to" error={errors.validTo}>
+                  <Field label={t('Valid to')} error={errors.validTo}>
                     <input type="date" className="input" value={d.validTo} onChange={(e) => set('validTo', e.target.value)} />
                   </Field>
-                  <Field label="Reason / notes" className="sm:col-span-2 xl:col-span-3" hint="Shown to the approver">
-                    <textarea className="input" rows={2} value={d.notes} onChange={(e) => set('notes', e.target.value)} />
+                  <Field label={t('Reason / notes')} className="sm:col-span-2 xl:col-span-3" hint={t('Shown to the approver')}>
+                    {/* Locked templates show the note translated; drafts keep the stored text so it can be edited. */}
+                    <textarea className="input" rows={2} value={editable || !d.notes ? d.notes : t(d.notes)} onChange={(e) => set('notes', e.target.value)} />
                   </Field>
                 </FormGrid>
               </fieldset>
@@ -457,16 +514,16 @@ function TemplateEditor({
 
           <Card>
             <CardHeader
-              title="Base price per litre (Rs)"
+              title={t('Base price per litre (Rs)')}
               subtitle={
                 basis && editable
-                  ? `Rows = FAT %, columns = SNF %. Highlighted cells differ from the active v${basis.version}.`
-                  : 'Rows = FAT %, columns = SNF %.'
+                  ? t('Rows = FAT %, columns = SNF %. Highlighted cells differ from the active v{v}.', { v: basis.version })
+                  : t('Rows = FAT %, columns = SNF %.')
               }
               actions={
                 editable ? (
                   <div className="flex items-center gap-1.5">
-                    <label className="sr-only" htmlFor="adjust">Adjust all prices by Rs</label>
+                    <label className="sr-only" htmlFor="adjust">{t('Adjust all prices by Rs')}</label>
                     <input
                       id="adjust"
                       className="input num h-8 w-20 text-right"
@@ -475,10 +532,10 @@ function TemplateEditor({
                       onChange={(e) => setAdjust(e.target.value)}
                     />
                     <button type="button" className="btn btn-secondary btn-sm" onClick={() => shiftAll(Math.abs(n(adjust) || 0))}>
-                      + All
+                      {t('+ All')}
                     </button>
                     <button type="button" className="btn btn-secondary btn-sm" onClick={() => shiftAll(-Math.abs(n(adjust) || 0))}>
-                      − All
+                      {t('− All')}
                     </button>
                   </div>
                 ) : undefined
@@ -511,7 +568,7 @@ function TemplateEditor({
                           <td key={c} className="px-2 py-1.5 text-right">
                             {editable ? (
                               <input
-                                aria-label={`Price for FAT ${FAT_BANDS[r]}, SNF ${SNF_BANDS[c]}`}
+                                aria-label={t('Price for FAT {fat}, SNF {snf}', { fat: FAT_BANDS[r], snf: SNF_BANDS[c] })}
                                 className={clsx(
                                   'input num h-9 w-24 text-right',
                                   changed && 'border-amber-400 bg-amber-50',
@@ -539,7 +596,7 @@ function TemplateEditor({
                 {errors.matrix && <p className="text-red-600" role="alert">{errors.matrix}</p>}
                 {warnings.slice(0, 3).map((w) => (
                   <p key={w} className="flex items-center gap-1.5 text-amber-800">
-                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {w} — richer milk normally pays more.
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {t('{warning} — richer milk normally pays more.', { warning: w })}
                   </p>
                 ))}
               </div>
@@ -547,69 +604,69 @@ function TemplateEditor({
           </Card>
 
           <Card>
-            <CardHeader title="Premiums & quality rules" />
+            <CardHeader title={t('Premiums & quality rules')} />
             <CardBody>
               <fieldset disabled={!editable} className="contents">
                 <FormGrid>
-                  <Field label="Category premium (Rs / L)" error={errors.premium} hint="Added to every accepted litre">
+                  <Field label={t('Category premium (Rs / L)')} error={errors.premium} hint={t('Added to every accepted litre')}>
                     <input className="input num" inputMode="decimal" value={d.premium} onChange={(e) => set('premium', e.target.value)} />
                   </Field>
-                  <Field label="Chill bonus (Rs / L)" error={errors.chillBonus}>
+                  <Field label={t('Chill bonus (Rs / L)')} error={errors.chillBonus}>
                     <input className="input num" inputMode="decimal" value={d.chillBonus} onChange={(e) => set('chillBonus', e.target.value)} />
                   </Field>
-                  <Field label="Chill bonus at or below (°C)" error={errors.chillTemp}>
+                  <Field label={t('Chill bonus at or below (°C)')} error={errors.chillTemp}>
                     <input className="input num" inputMode="decimal" value={d.chillTemp} onChange={(e) => set('chillTemp', e.target.value)} />
                   </Field>
-                  <Field label="Flag deliveries above (°C)" error={errors.flagTemp} hint="Creates a quality exception">
+                  <Field label={t('Flag deliveries above (°C)')} error={errors.flagTemp} hint={t('Creates a quality exception')}>
                     <input className="input num" inputMode="decimal" value={d.flagTemp} onChange={(e) => set('flagTemp', e.target.value)} />
                   </Field>
-                  <Field label="Reject below FAT (%)" error={errors.minFat}>
+                  <Field label={t('Reject below FAT (%)')} error={errors.minFat}>
                     <input className="input num" inputMode="decimal" value={d.minFat} onChange={(e) => set('minFat', e.target.value)} />
                   </Field>
-                  <Field label="Reject below SNF (%)" error={errors.minSnf}>
+                  <Field label={t('Reject below SNF (%)')} error={errors.minSnf}>
                     <input className="input num" inputMode="decimal" value={d.minSnf} onChange={(e) => set('minSnf', e.target.value)} />
                   </Field>
                 </FormGrid>
               </fieldset>
-              <p className="mt-4 text-xs text-zinc-500">A failed alcohol test or any adulteration always rejects the delivery, whatever the template.</p>
+              <p className="mt-4 text-xs text-zinc-500">{t('A failed alcohol test or any adulteration always rejects the delivery, whatever the template.')}</p>
             </CardBody>
           </Card>
         </div>
 
         <div className="space-y-6">
           <Card>
-            <CardHeader title="Check a rate" subtitle="Try a delivery against this template" />
+            <CardHeader title={t('Check a rate')} subtitle={t('Try a delivery against this template')} />
             <CardBody className="space-y-4">
               <div className="grid grid-cols-3 gap-3">
                 {(['fat', 'snf', 'temp'] as const).map((k) => (
-                  <Field key={k} label={k === 'fat' ? 'FAT %' : k === 'snf' ? 'SNF %' : 'Temp °C'}>
+                  <Field key={k} label={k === 'fat' ? t('FAT %') : k === 'snf' ? t('SNF %') : t('Temp °C')}>
                     <input className="input num" inputMode="decimal" value={test[k]} onChange={(e) => setTest((x) => ({ ...x, [k]: e.target.value }))} />
                   </Field>
                 ))}
               </div>
               {preview ? (
                 <dl className="space-y-1.5 rounded-lg border border-zinc-200 p-3 text-sm">
-                  <div className="flex justify-between"><dt className="text-zinc-500">Base price</dt><dd className="num">{rs(preview.base)}</dd></div>
-                  <div className="flex justify-between"><dt className="text-zinc-500">Category premium</dt><dd className="num">+ {rs(preview.premium)}</dd></div>
-                  <div className="flex justify-between"><dt className="text-zinc-500">Chill bonus</dt><dd className="num">+ {rs(preview.chill)}</dd></div>
-                  <div className="flex justify-between border-t border-zinc-200 pt-1.5 font-semibold"><dt>Rate per litre</dt><dd className="num">{rs(preview.rate)}</dd></div>
-                  {preview.flagged && <p className="pt-1 text-xs text-amber-800">Above {d.flagTemp} °C — accepted but flagged as a quality exception.</p>}
+                  <div className="flex justify-between"><dt className="text-zinc-500">{t('Base price')}</dt><dd className="num">{rs(preview.base)}</dd></div>
+                  <div className="flex justify-between"><dt className="text-zinc-500">{t('Category premium')}</dt><dd className="num">+ {rs(preview.premium)}</dd></div>
+                  <div className="flex justify-between"><dt className="text-zinc-500">{t('Chill bonus')}</dt><dd className="num">+ {rs(preview.chill)}</dd></div>
+                  <div className="flex justify-between border-t border-zinc-200 pt-1.5 font-semibold"><dt>{t('Rate per litre')}</dt><dd className="num">{rs(preview.rate)}</dd></div>
+                  {preview.flagged && <p className="pt-1 text-xs text-amber-800">{t('Above {temp} °C — accepted but flagged as a quality exception.', { temp: d.flagTemp })}</p>}
                 </dl>
               ) : (
-                <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">Rejected — below FAT {d.minFat} % or SNF {d.minSnf} %. Nothing is paid.</p>
+                <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{t('Rejected — below FAT {fat} % or SNF {snf} %. Nothing is paid.', { fat: d.minFat, snf: d.minSnf })}</p>
               )}
             </CardBody>
           </Card>
 
           <Card>
-            <CardHeader title="History" />
+            <CardHeader title={t('History')} />
             <CardBody>
               <ol className="relative space-y-4 border-l border-zinc-200 pl-5">
-                {[...t.history].reverse().map((h, i) => (
+                {[...tpl.history].reverse().map((h, i) => (
                   <li key={i} className="relative">
                     <span className="absolute -left-[25px] top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-zinc-400" />
-                    <p className="text-xs text-zinc-500">{h.when} · {h.who}</p>
-                    <p className="text-sm">{h.text}</p>
+                    <p className="text-xs text-zinc-500">{h.when} · {trWho(h.who, t)}</p>
+                    <p className="text-sm">{trHistory(h.text, t)}</p>
                   </li>
                 ))}
               </ol>

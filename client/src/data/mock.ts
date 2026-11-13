@@ -324,14 +324,18 @@ export interface Dispute {
   id: string;
   farmer: string;
   farmerId: string;
-  category: 'Quality' | 'Payment' | 'Delivery';
+  /** Dispute = disagreement about a delivery or payment amount. Complaint = service issue (pickup, staff, equipment). */
+  kind?: 'Dispute' | 'Complaint';
+  category: 'Quality' | 'Payment' | 'Delivery' | 'Service';
   raised: string;
   owner: string;
   slaHours: number;
-  status: 'Investigating' | 'Waiting farmer' | 'In approval' | 'Retest booked' | 'Resolved';
+  status: 'New' | 'Investigating' | 'Waiting farmer' | 'In approval' | 'Retest booked' | 'Resolved';
   summary: string;
   value: number;
   linked: string;
+  /** Number of photos / documents attached */
+  attachments?: number;
   timeline: { time: string; who: string; text: string }[];
 }
 
@@ -341,7 +345,7 @@ export const disputes: Dispute[] = [
     summary: 'Farmer says the 31 L delivered on 12 Nov (morning) was not watered and asks for a retest of the retained sample.',
     timeline: [
       { time: '12 Nov 06:38', who: 'Counter 2', text: 'Delivery rejected: FAT 2.85, SNF 7.62, low density.' },
-      { time: '12 Nov 08:10', who: 'Farmer app', text: 'Dispute raised with a photo of the can.' },
+      { time: '12 Nov 08:10', who: 'Farmer portal', text: 'Dispute raised with a photo of the can.' },
       { time: '12 Nov 09:02', who: 'QA officer', text: 'Retained sample found. Lab retest requested.' },
     ],
   },
@@ -369,13 +373,13 @@ export const disputes: Dispute[] = [
   {
     id: 'DSP-2026-0302', farmer: 'N. Herath', farmerId: 'MF-005678', category: 'Quality', raised: '08 Nov', owner: 'QA · L. Silva', slaHours: 30, status: 'Retest booked', value: 1702, linked: 'EX-26-11-0417',
     summary: 'Farmer disputes the alcohol test failure.',
-    timeline: [{ time: '08 Nov 07:30', who: 'Farmer app', text: 'Dispute raised.' }],
+    timeline: [{ time: '08 Nov 07:30', who: 'Farmer portal', text: 'Dispute raised.' }],
   },
   {
     id: 'DSP-2026-0309', farmer: 'W. M. Sunil Bandara', farmerId: 'MF-004812', category: 'Payment', raised: '09 Nov', owner: 'Finance · R. Peiris', slaHours: 20, status: 'In approval', value: 6450, linked: 'PR-2026-10B',
     summary: 'Gold category premium (Rs 5 / L) was not applied for 16–31 Oct; the farmer asks for the difference on 1,290 L.',
     timeline: [
-      { time: '09 Nov 10:12', who: 'Farmer app', text: 'Dispute raised with the payment slip.' },
+      { time: '09 Nov 10:12', who: 'Farmer portal', text: 'Dispute raised with the payment slip.' },
       { time: '10 Nov 14:30', who: 'Finance', text: 'Confirmed: category upgrade was approved on 15 Oct but the price template was not updated.' },
       { time: '11 Nov 09:05', who: 'Finance', text: 'Adjustment of Rs 6,450 sent to the Regional Manager for approval.' },
     ],

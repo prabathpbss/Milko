@@ -24,6 +24,7 @@ import { useRegionNames } from '@/data/masters';
 import { compact, num } from '@/lib/format';
 import { useAuth } from '@/context/AuthContext';
 import { useChartColors } from '@/lib/chartTheme';
+import { useLang } from '@/i18n/LanguageContext';
 
 const series: { key: string; color: string }[] = [
   { key: 'North Central', color: '#D71920' },
@@ -33,6 +34,13 @@ const series: { key: string; color: string }[] = [
   { key: 'Uva', color: '#10B981' },
 ];
 
+type T = (text: string, vars?: Record<string, string | number>) => string;
+/** '2 h' / '1 d' → translated age. */
+const trAge = (age: string, t: T) => {
+  const m = /^(\d+) (h|d)$/.exec(age);
+  return m ? t(m[2] === 'h' ? '{n} h' : '{n} d', { n: m[1] }) : t(age);
+};
+
 const alertStyle = {
   danger: 'bg-red-50 text-red-700',
   warning: 'bg-amber-50 text-amber-800',
@@ -40,6 +48,7 @@ const alertStyle = {
 };
 
 export default function Dashboard() {
+  const { t } = useLang();
   const { user } = useAuth();
   const cc = useChartColors();
   const regions = useRegionNames();
@@ -55,8 +64,8 @@ export default function Dashboard() {
   const suppliers = shown.reduce((s, c) => s + c.farmers, 0);
   const fat = shown.reduce((s, c) => s + c.fat * c.todayLitres, 0) / Math.max(1, litres);
   const snf = shown.reduce((s, c) => s + c.snf * c.todayLitres, 0) / Math.max(1, litres);
-  const onRoute = tankers.filter((t) => t.status === 'On time' || t.status === 'Delayed').length;
-  const delayed = tankers.filter((t) => t.status === 'Delayed').length;
+  const onRoute = tankers.filter((tk) => tk.status === 'On time' || tk.status === 'Delayed').length;
+  const delayed = tankers.filter((tk) => tk.status === 'Delayed').length;
   const pending = approvals.filter((a) => a.status === 'Pending');
 
   const shownSeries = region === 'All regions' ? series : series.filter((s) => s.key === region);
@@ -64,15 +73,15 @@ export default function Dashboard() {
   return (
     <>
       <PageHeader
-        title={`Good morning, ${user?.name.split(' ')[0] ?? ''}`}
-        description={`Collection overview for ${TODAY}.`}
+        title={t('Good morning, {name}', { name: user?.name.split(' ')[0] ?? '' })}
+        description={t('Collection overview for {date}.', { date: TODAY })}
         actions={
           <>
             <Link to="/reports" className="btn btn-secondary">
-              Open reports
+              {t('Open reports')}
             </Link>
             <Link to="/collection" className="btn btn-primary">
-              <Milk className="h-4 w-4" /> Record collection
+              <Milk className="h-4 w-4" /> {t('Record collection')}
             </Link>
           </>
         }
@@ -80,36 +89,36 @@ export default function Dashboard() {
 
       <div className="mb-6 flex flex-wrap gap-3">
         <label className="w-full sm:w-52">
-          <span className="sr-only">Region</span>
+          <span className="sr-only">{t('Region')}</span>
           <select className="input" value={region} onChange={(e) => setRegion(e.target.value)}>
-            <option>All regions</option>
+            <option value="All regions">{t('All regions')}</option>
             {regions.map((r) => (
               <option key={r}>{r}</option>
             ))}
           </select>
         </label>
         <label className="w-full sm:w-44">
-          <span className="sr-only">Shift</span>
+          <span className="sr-only">{t('Shift')}</span>
           <select className="input" value={shift} onChange={(e) => setShift(e.target.value)}>
-            <option>Both shifts</option>
-            <option>Morning</option>
-            <option>Evening</option>
+            <option value="Both shifts">{t('Both shifts')}</option>
+            <option value="Morning">{t('Morning')}</option>
+            <option value="Evening">{t('Evening')}</option>
           </select>
         </label>
       </div>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-        <StatCard label="Milk received today" value={`${num(litres)} L`} icon={Milk} trend={{ value: '4.2%', up: true }} hint="vs last week" />
-        <StatCard label="Farmers supplied" value={num(Math.round(suppliers * 0.65))} icon={Users} hint={`of ${num(suppliers)} active`} />
-        <StatCard label="FAT / SNF" value={`${fat.toFixed(2)} / ${snf.toFixed(2)}`} icon={Droplets} hint="Weighted average %" />
-        <StatCard label="Rejected today" value={`${num(rejected)} L`} icon={XCircle} tone="danger" trend={{ value: `${((rejected / litres) * 100).toFixed(2)}%`, up: true, good: false }} hint="of received" />
-        <StatCard label="Next payment run" value="16 Nov" icon={CalendarClock} hint="1–15 Nov · in approval" />
-        <StatCard label="Tankers on route" value={`${onRoute} / ${tankers.length}`} icon={Truck} hint={`${delayed} delayed over 30 min`} />
+        <StatCard label={t('Milk received today')} value={`${num(litres)} L`} icon={Milk} trend={{ value: '4.2%', up: true }} hint={t('vs last week')} />
+        <StatCard label={t('Farmers supplied')} value={num(Math.round(suppliers * 0.65))} icon={Users} hint={t('of {n} active', { n: num(suppliers) })} />
+        <StatCard label="FAT / SNF" value={`${fat.toFixed(2)} / ${snf.toFixed(2)}`} icon={Droplets} hint={t('Weighted average %')} />
+        <StatCard label={t('Rejected today')} value={`${num(rejected)} L`} icon={XCircle} tone="danger" trend={{ value: `${((rejected / litres) * 100).toFixed(2)}%`, up: true, good: false }} hint={t('of received')} />
+        <StatCard label={t('Next payment run')} value="16 Nov" icon={CalendarClock} hint={t('{period} · in approval', { period: '1–15 Nov' })} />
+        <StatCard label={t('Tankers on route')} value={`${onRoute} / ${tankers.length}`} icon={Truck} hint={t('{n} delayed over 30 min', { n: delayed })} />
       </div>
 
       <div className="mb-6 grid gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
-          <CardHeader title="Milk received, last 30 days" subtitle="Litres per day by region" />
+          <CardHeader title={t('Milk received, last 30 days')} subtitle={t('Litres per day by region')} />
           <CardBody className="h-[320px] pl-1 sm:pl-2">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={collectionTrend} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
@@ -147,10 +156,10 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader
-            title="Needs attention"
+            title={t('Needs attention')}
             actions={
               <Badge tone="danger" dot>
-                {alerts.length} alerts
+                {t('{n} alerts', { n: alerts.length })}
               </Badge>
             }
           />
@@ -162,8 +171,8 @@ export default function Dashboard() {
                     <AlertTriangle className="h-3.5 w-3.5" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-xs font-semibold uppercase tracking-wide text-zinc-500">{a.title}</span>
-                    <span className="block text-sm text-zinc-800">{a.text}</span>
+                    <span className="block text-xs font-semibold uppercase tracking-wide text-zinc-500">{t(a.title)}</span>
+                    <span className="block text-sm text-zinc-800">{t(a.text)}</span>
                   </span>
                   <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-zinc-300" />
                 </Link>
@@ -176,10 +185,10 @@ export default function Dashboard() {
       <div className="grid gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader
-            title="Today by collection center"
+            title={t('Today by collection center')}
             actions={
               <Link to="/logistics" className="btn btn-ghost btn-sm">
-                All centers <ArrowRight className="h-3.5 w-3.5" />
+                {t('All centers')} <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             }
           />
@@ -189,7 +198,7 @@ export default function Dashboard() {
             columns={[
               {
                 key: 'name',
-                header: 'Center',
+                header: t('Center'),
                 render: (c) => (
                   <div>
                     <div className="font-medium">{c.name}</div>
@@ -197,15 +206,15 @@ export default function Dashboard() {
                   </div>
                 ),
               },
-              { key: 'litres', header: 'Litres', align: 'right', mono: true, render: (c) => num(c.todayLitres) },
+              { key: 'litres', header: t('Litres'), align: 'right', mono: true, render: (c) => num(c.todayLitres) },
               {
                 key: 'cap',
-                header: 'Capacity used',
+                header: t('Capacity used'),
                 render: (c) => {
                   const p = (c.todayLitres / c.capacity) * 100;
                   return (
                     <div className="flex w-36 items-center gap-2">
-                      <Progress value={p} tone={p > 95 ? 'warning' : 'dark'} label={`${c.name} capacity`} />
+                      <Progress value={p} tone={p > 95 ? 'warning' : 'dark'} label={t('{name} capacity', { name: c.name })} />
                       <span className="num w-10 text-right text-xs text-zinc-500">{p.toFixed(0)}%</span>
                     </div>
                   );
@@ -213,8 +222,8 @@ export default function Dashboard() {
               },
               { key: 'fat', header: 'FAT', align: 'right', mono: true, render: (c) => c.fat.toFixed(2) },
               { key: 'snf', header: 'SNF', align: 'right', mono: true, render: (c) => c.snf.toFixed(2) },
-              { key: 'rej', header: 'Rejected L', align: 'right', mono: true, render: (c) => num(c.rejected) },
-              { key: 'status', header: 'Status', render: (c) => <StatusBadge status={c.status} /> },
+              { key: 'rej', header: t('Rejected L'), align: 'right', mono: true, render: (c) => num(c.rejected) },
+              { key: 'status', header: t('Status'), render: (c) => <StatusBadge status={c.status} /> },
             ]}
           />
         </Card>
@@ -222,11 +231,11 @@ export default function Dashboard() {
         <div className="flex flex-col gap-6">
           <Card>
             <CardHeader
-              title="Live tankers"
-              subtitle={`${onRoute} on route · ${delayed} delayed`}
+              title={t('Live tankers')}
+              subtitle={t('{onRoute} on route · {delayed} delayed', { onRoute, delayed })}
               actions={
                 <Link to="/logistics" className="btn btn-ghost btn-sm">
-                  Track
+                  {t('Track')}
                 </Link>
               }
             />
@@ -234,23 +243,23 @@ export default function Dashboard() {
               <FakeMap
                 height={200}
                 markers={tankers
-                  .filter((t) => t.status !== 'Unassigned')
-                  .map((t) => ({
-                    id: t.id,
-                    x: t.x,
-                    y: t.y,
-                    label: t.route,
-                    tone: t.status === 'Delayed' ? 'warning' : t.status === 'At plant' ? 'info' : 'success',
+                  .filter((tk) => tk.status !== 'Unassigned')
+                  .map((tk) => ({
+                    id: tk.id,
+                    x: tk.x,
+                    y: tk.y,
+                    label: tk.route,
+                    tone: tk.status === 'Delayed' ? 'warning' : tk.status === 'At plant' ? 'info' : 'success',
                   }))}
               />
             </CardBody>
           </Card>
           <Card>
             <CardHeader
-              title="Waiting for approval"
+              title={t('Waiting for approval')}
               actions={
                 <Link to="/approvals" className="btn btn-ghost btn-sm">
-                  Open inbox
+                  {t('Open inbox')}
                 </Link>
               }
             />
@@ -259,9 +268,9 @@ export default function Dashboard() {
                 <li key={a.id}>
                   <Link to="/approvals" className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-zinc-50">
                     <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium">{a.title}</span>
+                      <span className="block truncate text-sm font-medium">{t(a.title)}</span>
                       <span className="block text-xs text-zinc-500">
-                        {a.type} · {a.age} ago
+                        {t(a.type)} · {t('{age} ago', { age: trAge(a.age, t) })}
                       </span>
                     </span>
                     <ArrowRight className="h-4 w-4 shrink-0 text-zinc-300" />

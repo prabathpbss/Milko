@@ -5,14 +5,16 @@ import {
   CheckCircle2,
   FileSignature,
   KeyRound,
+  Navigation,
+  Layers,
   LayoutDashboard,
   Map,
   Milk,
-  Navigation,
   PlugZap,
   RefreshCw,
   Settings,
   ShieldAlert,
+  ShieldCheck,
   Smartphone,
   Sprout,
   Tags,
@@ -66,10 +68,20 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
+    label: 'Field forms',
+    items: [
+      { to: '/field/collect', label: 'Field collection', icon: Smartphone },
+      { to: '/field/driver', label: 'Tanker driver', icon: Navigation },
+      { to: '/field/farmer', label: 'Farmer portal', icon: Sprout },
+    ],
+  },
+  {
     label: 'Masters',
     items: [
       { to: '/masters/regions', label: 'Regions', icon: Map },
       { to: '/masters/categories', label: 'Farmer categories', icon: Award },
+      { to: '/masters/roles', label: 'Roles', icon: ShieldCheck },
+      { to: '/masters/scopes', label: 'Access scopes', icon: Layers },
     ],
   },
   {
@@ -79,14 +91,6 @@ export const navGroups: NavGroup[] = [
       { to: '/erp/sync', label: 'Mapping & sync log', icon: RefreshCw },
       { to: '/users', label: 'Users & roles', icon: KeyRound },
       { to: '/settings', label: 'Settings', icon: Settings },
-    ],
-  },
-  {
-    label: 'Mobile apps',
-    items: [
-      { to: '/mobile/collect', label: 'Field collection', icon: Smartphone },
-      { to: '/mobile/driver', label: 'Tanker driver', icon: Navigation },
-      { to: '/mobile/farmer', label: 'Farmer app', icon: Sprout },
     ],
   },
 ];

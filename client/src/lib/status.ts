@@ -48,6 +48,7 @@ const map: Record<string, Tone> = {
   'At plant': 'info',
   Next: 'info',
   'Retest booked': 'info',
+  New: 'info',
 
   Inactive: 'neutral',
   Closed: 'neutral',

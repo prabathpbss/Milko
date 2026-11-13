@@ -11,9 +11,11 @@ import { centers, farmers, type Farmer } from '@/data/mock';
 import { useCategoryNames, useRegionNames } from '@/data/masters';
 import { num } from '@/lib/format';
 import { useToast } from '@/context/ToastContext';
+import { useLang } from '@/i18n/LanguageContext';
 
 type StatusFilter = 'all' | 'Active' | 'Pending' | 'Suspended';
 const PAGE = 8;
+const BULK_ACTIONS = ['Change category', 'Send SMS', 'Renew contracts', 'Push to ERP'];
 
 function scoreTone(score: number) {
   if (score >= 85) return 'text-emerald-700';
@@ -24,6 +26,7 @@ function scoreTone(score: number) {
 export default function Farmers() {
   const navigate = useNavigate();
   const toast = useToast();
+  const { t } = useLang();
   const regions = useRegionNames();
   const categories = useCategoryNames();
   const [status, setStatus] = useState<StatusFilter>('all');
@@ -64,19 +67,19 @@ export default function Farmers() {
   return (
     <>
       <PageHeader
-        breadcrumb={[{ label: 'Farmers' }]}
-        title="Farmer & supplier list"
-        description="Profiles, categories, contracts and performance for every registered supplier."
+        breadcrumb={[{ label: t('Farmers') }]}
+        title={t('Farmer & supplier list')}
+        description={t('Profiles, categories, contracts and performance for every registered supplier.')}
         actions={
           <>
-            <button className="btn btn-secondary" onClick={() => toast('Import template downloaded', 'info')}>
-              <Upload className="h-4 w-4" /> Import
+            <button className="btn btn-secondary" onClick={() => toast(t('Import template downloaded'), 'info')}>
+              <Upload className="h-4 w-4" /> {t('Import')}
             </button>
-            <button className="btn btn-secondary" onClick={() => toast(`Exported ${filtered.length} farmers to Excel`)}>
-              <Download className="h-4 w-4" /> Export
+            <button className="btn btn-secondary" onClick={() => toast(t('Exported {n} farmers to Excel', { n: filtered.length }))}>
+              <Download className="h-4 w-4" /> {t('Export')}
             </button>
             <Link to="/onboarding" className="btn btn-primary">
-              <Plus className="h-4 w-4" /> Register farmer
+              <Plus className="h-4 w-4" /> {t('Register farmer')}
             </Link>
           </>
         }
@@ -90,10 +93,10 @@ export default function Farmers() {
             setPage(0);
           }}
           options={[
-            { id: 'all', label: 'All', count: count('all') },
-            { id: 'Active', label: 'Active', count: count('Active') },
-            { id: 'Pending', label: 'Pending verification', count: count('Pending') },
-            { id: 'Suspended', label: 'Suspended', count: count('Suspended') },
+            { id: 'all', label: t('All'), count: count('all') },
+            { id: 'Active', label: t('Active'), count: count('Active') },
+            { id: 'Pending', label: t('Pending verification'), count: count('Pending') },
+            { id: 'Suspended', label: t('Suspended'), count: count('Suspended') },
           ]}
         />
       </div>
@@ -101,11 +104,11 @@ export default function Farmers() {
       <Card>
         <div className="grid gap-3 border-b border-zinc-100 p-4 sm:grid-cols-2 lg:grid-cols-6">
           <label className="relative lg:col-span-2">
-            <span className="sr-only">Search</span>
+            <span className="sr-only">{t('Search')}</span>
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
             <input
               className="input pl-9"
-              placeholder="Name, farmer ID, NIC or mobile"
+              placeholder={t('Name, farmer ID, NIC or mobile')}
               value={q}
               onChange={(e) => {
                 setQ(e.target.value);
@@ -113,43 +116,43 @@ export default function Farmers() {
               }}
             />
           </label>
-          <select className="input" aria-label="Region" value={region} onChange={(e) => { setRegion(e.target.value); setPage(0); }}>
-            <option value="">All regions</option>
+          <select className="input" aria-label={t('Region')} value={region} onChange={(e) => { setRegion(e.target.value); setPage(0); }}>
+            <option value="">{t('All regions')}</option>
             {regions.map((r) => <option key={r}>{r}</option>)}
           </select>
-          <select className="input" aria-label="Collection center" value={center} onChange={(e) => { setCenter(e.target.value); setPage(0); }}>
-            <option value="">All centers</option>
+          <select className="input" aria-label={t('Collection center')} value={center} onChange={(e) => { setCenter(e.target.value); setPage(0); }}>
+            <option value="">{t('All centers')}</option>
             {centers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
-          <select className="input" aria-label="Category" value={category} onChange={(e) => { setCategory(e.target.value); setPage(0); }}>
-            <option value="">All categories</option>
-            {categories.map((c) => <option key={c}>{c}</option>)}
+          <select className="input" aria-label={t('Category')} value={category} onChange={(e) => { setCategory(e.target.value); setPage(0); }}>
+            <option value="">{t('All categories')}</option>
+            {categories.map((c) => <option key={c} value={c}>{t(c)}</option>)}
           </select>
-          <select className="input" aria-label="Contract" value={contract} onChange={(e) => { setContract(e.target.value); setPage(0); }}>
-            <option value="">Any contract</option>
-            <option value="Valid">Valid</option>
-            <option value="Expiring">Expiring in 30 days</option>
-            <option value="Expired">Expired</option>
+          <select className="input" aria-label={t('Contract')} value={contract} onChange={(e) => { setContract(e.target.value); setPage(0); }}>
+            <option value="">{t('Any contract')}</option>
+            <option value="Valid">{t('Valid')}</option>
+            <option value="Expiring">{t('Expiring in 30 days')}</option>
+            <option value="Expired">{t('Expired')}</option>
           </select>
         </div>
 
         {selected.size > 0 && (
           <div className="flex flex-wrap items-center gap-2 border-b border-zinc-100 bg-zinc-900 px-4 py-2.5 text-sm text-white">
-            <span className="mr-2 font-medium">{selected.size} selected</span>
-            {['Change category', 'Send SMS', 'Renew contracts', 'Push to ERP'].map((a) => (
+            <span className="mr-2 font-medium">{t('{n} selected', { n: selected.size })}</span>
+            {BULK_ACTIONS.map((a) => (
               <button
                 key={a}
                 className="btn btn-sm border border-white/20 bg-white/10 text-white hover:bg-white/20"
                 onClick={() => {
-                  toast(`${a}: ${selected.size} farmers queued`);
+                  toast(t('{action}: {n} farmers queued', { action: t(a), n: selected.size }));
                   setSelected(new Set());
                 }}
               >
-                {a}
+                {t(a)}
               </button>
             ))}
             <button className="btn btn-sm ml-auto text-[#D4D4D8] hover:text-white" onClick={() => setSelected(new Set())}>
-              <X className="h-3.5 w-3.5" /> Clear
+              <X className="h-3.5 w-3.5" /> {t('Clear')}
             </button>
           </div>
         )}
@@ -160,7 +163,7 @@ export default function Farmers() {
           onRowClick={(f) => navigate(`/farmers/${f.id}`)}
           empty={
             <span>
-              No farmers match these filters.{' '}
+              {t('No farmers match these filters.')}{' '}
               {hasFilters && (
                 <button
                   className="font-medium text-brand-700 hover:underline"
@@ -168,7 +171,7 @@ export default function Farmers() {
                     setQ(''); setRegion(''); setCenter(''); setCategory(''); setContract('');
                   }}
                 >
-                  Clear filters
+                  {t('Clear filters')}
                 </button>
               )}
             </span>
@@ -179,7 +182,7 @@ export default function Farmers() {
               header: (
                 <input
                   type="checkbox"
-                  aria-label="Select all on page"
+                  aria-label={t('Select all on page')}
                   className="h-4 w-4 accent-brand-600"
                   checked={allOnPage}
                   onChange={() =>
@@ -194,7 +197,7 @@ export default function Farmers() {
               render: (f) => (
                 <input
                   type="checkbox"
-                  aria-label={`Select ${f.name}`}
+                  aria-label={t('Select {name}', { name: f.name })}
                   className="h-4 w-4 accent-brand-600"
                   checked={selected.has(f.id)}
                   onClick={(e) => e.stopPropagation()}
@@ -204,7 +207,7 @@ export default function Farmers() {
             },
             {
               key: 'name',
-              header: 'Farmer',
+              header: t('Farmer'),
               render: (f) => (
                 <div className="flex items-center gap-3">
                   <Avatar name={f.name} size="sm" />
@@ -223,27 +226,27 @@ export default function Farmers() {
             },
             {
               key: 'center',
-              header: 'Center',
+              header: t('Center'),
               render: (f) => (
                 <div>
                   <div>{f.center}</div>
-                  <div className="text-xs text-zinc-500">Route {f.route}</div>
+                  <div className="text-xs text-zinc-500">{t('Route {route}', { route: f.route })}</div>
                 </div>
               ),
             },
-            { key: 'cat', header: 'Category', render: (f) => <Badge tone={f.category === 'Platinum' || f.category === 'Gold' ? 'brand' : 'neutral'}>{f.category}</Badge> },
-            { key: 'cows', header: 'Milking cows', align: 'right', mono: true, render: (f) => f.milkingCows },
-            { key: 'l', header: 'Avg L / day', align: 'right', mono: true, render: (f) => num(f.avgLitres, 1) },
+            { key: 'cat', header: t('Category'), render: (f) => <Badge tone={f.category === 'Platinum' || f.category === 'Gold' ? 'brand' : 'neutral'}>{t(f.category)}</Badge> },
+            { key: 'cows', header: t('Milking cows'), align: 'right', mono: true, render: (f) => f.milkingCows },
+            { key: 'l', header: t('Avg L / day'), align: 'right', mono: true, render: (f) => num(f.avgLitres, 1) },
             {
               key: 'q',
-              header: 'Quality',
+              header: t('Quality'),
               align: 'right',
               render: (f) => <span className={`num font-medium ${scoreTone(f.qualityScore)}`}>{f.qualityScore || '—'}</span>,
             },
-            { key: 'rel', header: 'Reliability', align: 'right', mono: true, render: (f) => (f.reliability ? `${f.reliability}%` : '—') },
+            { key: 'rel', header: t('Reliability'), align: 'right', mono: true, render: (f) => (f.reliability ? `${f.reliability}%` : '—') },
             {
               key: 'contract',
-              header: 'Contract',
+              header: t('Contract'),
               render: (f) => (
                 <div className="flex flex-col items-start gap-0.5">
                   <StatusBadge status={f.contractStatus} />
@@ -253,26 +256,30 @@ export default function Farmers() {
             },
             {
               key: 'erp',
-              header: 'ERP vendor',
-              render: (f) => (f.erpVendor ? <span className="num text-xs">{f.erpVendor}</span> : <Badge tone="warning">Not synced</Badge>),
+              header: t('ERP vendor'),
+              render: (f) => (f.erpVendor ? <span className="num text-xs">{f.erpVendor}</span> : <Badge tone="warning">{t('Not synced')}</Badge>),
             },
-            { key: 'status', header: 'Status', render: (f) => <StatusBadge status={f.status} /> },
+            { key: 'status', header: t('Status'), render: (f) => <StatusBadge status={f.status} /> },
           ]}
         />
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 px-4 py-3 text-sm text-zinc-500">
           <span>
-            Showing {filtered.length === 0 ? 0 : page * PAGE + 1}–{Math.min(filtered.length, (page + 1) * PAGE)} of {filtered.length}
+            {t('Showing {from}–{to} of {total}', {
+              from: filtered.length === 0 ? 0 : page * PAGE + 1,
+              to: Math.min(filtered.length, (page + 1) * PAGE),
+              total: filtered.length,
+            })}
           </span>
           <div className="flex items-center gap-2">
             <button className="btn btn-secondary btn-sm" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
-              Previous
+              {t('Previous')}
             </button>
             <span className="num text-xs">
               {page + 1} / {pages}
             </span>
             <button className="btn btn-secondary btn-sm" disabled={page >= pages - 1} onClick={() => setPage((p) => p + 1)}>
-              Next
+              {t('Next')}
             </button>
           </div>
         </div>

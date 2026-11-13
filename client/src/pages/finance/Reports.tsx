@@ -22,6 +22,7 @@ import { useCategoryNames, useRegionNames } from '@/data/masters';
 import { num } from '@/lib/format';
 import { useToast } from '@/context/ToastContext';
 import { useChartColors } from '@/lib/chartTheme';
+import { useLang } from '@/i18n/LanguageContext';
 
 const catalog = [
   { group: 'Farmers', items: ['Farmer performance scorecard', 'Supplier reliability', 'Contract expiry', 'Compliance status'] },
@@ -31,6 +32,7 @@ const catalog = [
 ];
 
 export default function Reports() {
+  const { t } = useLang();
   const toast = useToast();
   const cc = useChartColors();
   const regions = useRegionNames();
@@ -58,18 +60,18 @@ export default function Reports() {
   return (
     <>
       <PageHeader
-        breadcrumb={[{ label: 'Finance' }, { label: 'Reports' }]}
-        title="Reports & analytics"
-        description="Farmer performance, milk volumes, quality and payment summaries."
+        breadcrumb={[{ label: t('Finance') }, { label: t('Reports') }]}
+        title={t('Reports & analytics')}
+        description={t('Farmer performance, milk volumes, quality and payment summaries.')}
         actions={
           <>
-            <button className="btn btn-secondary" onClick={() => toast('Report scheduled: every Monday 07:00 by email')}>
-              <CalendarClock className="h-4 w-4" /> Schedule
+            <button className="btn btn-secondary" onClick={() => toast(t('Report scheduled: every Monday 07:00 by email'))}>
+              <CalendarClock className="h-4 w-4" /> {t('Schedule')}
             </button>
-            <button className="btn btn-secondary" onClick={() => toast(`${report} exported as PDF`)}>
+            <button className="btn btn-secondary" onClick={() => toast(t('{report} exported as PDF', { report: t(report) }))}>
               <FileText className="h-4 w-4" /> PDF
             </button>
-            <button className="btn btn-primary" onClick={() => toast(`${report} exported to Excel`)}>
+            <button className="btn btn-primary" onClick={() => toast(t('{report} exported to Excel', { report: t(report) }))}>
               <FileSpreadsheet className="h-4 w-4" /> Excel
             </button>
           </>
@@ -78,10 +80,10 @@ export default function Reports() {
 
       <div className="grid gap-6 xl:grid-cols-4">
         <Card className="h-fit">
-          <nav aria-label="Reports" className="p-2">
+          <nav aria-label={t('Reports')} className="p-2">
             {catalog.map((g) => (
               <div key={g.group} className="mb-2">
-                <p className="px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">{g.group}</p>
+                <p className="px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">{t(g.group)}</p>
                 {g.items.map((r) => (
                   <button
                     key={r}
@@ -92,7 +94,7 @@ export default function Reports() {
                       r === report ? 'bg-brand-50 font-medium text-brand-700' : 'text-zinc-700 hover:bg-zinc-100',
                     )}
                   >
-                    {r}
+                    {t(r)}
                   </button>
                 ))}
               </div>
@@ -102,32 +104,32 @@ export default function Reports() {
 
         <div className="flex flex-col gap-6 xl:col-span-3">
           <Card>
-            <CardHeader title={report} subtitle="Data as of 12 Nov 2026, 09:45" />
+            <CardHeader title={t(report)} subtitle={t('Data as of {time}', { time: '12 Nov 2026, 09:45' })} />
             <CardBody className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <select className="input" aria-label="Period" value={period} onChange={(e) => setPeriod(e.target.value)}>
-                <option>This payment period</option>
-                <option>Last 3 months</option>
-                <option>Last 12 months</option>
-                <option>Custom range…</option>
+              <select className="input" aria-label={t('Period')} value={period} onChange={(e) => setPeriod(e.target.value)}>
+                <option value="This payment period">{t('This payment period')}</option>
+                <option value="Last 3 months">{t('Last 3 months')}</option>
+                <option value="Last 12 months">{t('Last 12 months')}</option>
+                <option value="Custom range…">{t('Custom range…')}</option>
               </select>
-              <select className="input" aria-label="Region" value={region} onChange={(e) => setRegion(e.target.value)}>
-                <option value="">All regions</option>
+              <select className="input" aria-label={t('Region')} value={region} onChange={(e) => setRegion(e.target.value)}>
+                <option value="">{t('All regions')}</option>
                 {regions.map((r) => <option key={r}>{r}</option>)}
               </select>
-              <select className="input" aria-label="Center">
-                <option>All centers</option>
+              <select className="input" aria-label={t('Center')}>
+                <option value="">{t('All centers')}</option>
                 {centers.map((c) => <option key={c.id}>{c.name}</option>)}
               </select>
-              <select className="input" aria-label="Category">
-                <option>All categories</option>
-                {categories.map((c) => <option key={c}>{c}</option>)}
+              <select className="input" aria-label={t('Category')}>
+                <option value="">{t('All categories')}</option>
+                {categories.map((c) => <option key={c} value={c}>{t(c)}</option>)}
               </select>
             </CardBody>
           </Card>
 
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
-              <CardHeader title="Score distribution" subtitle="Farmers by performance score" />
+              <CardHeader title={t('Score distribution')} subtitle={t('Farmers by performance score')} />
               <CardBody className="h-[260px] pl-1">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={histogram} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -135,20 +137,20 @@ export default function Reports() {
                     <XAxis dataKey="band" tick={{ fontSize: 11, fill: cc.tick }} tickLine={false} axisLine={false} />
                     <YAxis tick={{ fontSize: 11, fill: cc.tick }} tickLine={false} axisLine={false} width={44} />
                     <Tooltip formatter={(v: number) => num(v)} contentStyle={cc.tooltip} />
-                    <Bar dataKey="farmers" name="Farmers" fill="#D71920" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="farmers" name={t('Farmers')} fill="#D71920" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </CardBody>
             </Card>
             <Card>
-              <CardHeader title="Reliability vs quality" subtitle="Bubble size = average litres per day" />
+              <CardHeader title={t('Reliability vs quality')} subtitle={t('Bubble size = average litres per day')} />
               <CardBody className="h-[260px] pl-1">
                 <ResponsiveContainer width="100%" height="100%">
                   <ScatterChart margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
                     <CartesianGrid stroke={cc.grid} strokeDasharray="3 3" />
-                    <XAxis type="number" dataKey="x" name="Reliability" unit="%" domain={[70, 100]} tick={{ fontSize: 11, fill: cc.tick }} tickLine={false} />
+                    <XAxis type="number" dataKey="x" name={t('Reliability')} unit="%" domain={[70, 100]} tick={{ fontSize: 11, fill: cc.tick }} tickLine={false} />
                     <YAxis type="number" dataKey="y" name="FAT" unit="%" domain={[3.2, 4.5]} tick={{ fontSize: 11, fill: cc.tick }} tickLine={false} width={44} />
-                    <ZAxis type="number" dataKey="z" range={[60, 600]} name="L / day" />
+                    <ZAxis type="number" dataKey="z" range={[60, 600]} name={t('L / day')} />
                     <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={cc.tooltip} />
                     <Scatter data={scatter} fill={cc.ink} fillOpacity={0.7} />
                   </ScatterChart>
@@ -159,11 +161,11 @@ export default function Reports() {
 
           <Card>
             <CardHeader
-              title="Farmer scorecard"
-              subtitle="Score = 40% quality + 35% reliability + 25% volume against contract"
+              title={t('Farmer scorecard')}
+              subtitle={t('Score = 40% quality + 35% reliability + 25% volume against contract')}
               actions={
-                <button className="btn btn-ghost btn-sm" onClick={() => toast('Scorecard downloaded')}>
-                  <Download className="h-3.5 w-3.5" /> Download
+                <button className="btn btn-ghost btn-sm" onClick={() => toast(t('Scorecard downloaded'))}>
+                  <Download className="h-3.5 w-3.5" /> {t('Download')}
                 </button>
               }
             />
@@ -172,15 +174,15 @@ export default function Reports() {
               rowKey={(f) => f.id}
               columns={[
                 { key: 'rank', header: '#', mono: true, render: (_, i) => i + 1 },
-                { key: 'name', header: 'Farmer', render: (f) => <span className="font-medium">{f.name}</span> },
-                { key: 'center', header: 'Center' },
-                { key: 'l', header: 'Litres (90 d)', align: 'right', mono: true, render: (f) => num(f.avgLitres * 90) },
+                { key: 'name', header: t('Farmer'), render: (f) => <span className="font-medium">{f.name}</span> },
+                { key: 'center', header: t('Center') },
+                { key: 'l', header: t('Litres (90 d)'), align: 'right', mono: true, render: (f) => num(f.avgLitres * 90) },
                 { key: 'fat', header: 'FAT', align: 'right', mono: true, render: (f) => f.fat.toFixed(2) },
                 { key: 'snf', header: 'SNF', align: 'right', mono: true, render: (f) => f.snf.toFixed(2) },
-                { key: 'rel', header: 'On time', align: 'right', mono: true, render: (f) => `${f.reliability}%` },
+                { key: 'rel', header: t('On time'), align: 'right', mono: true, render: (f) => `${f.reliability}%` },
                 {
                   key: 'score',
-                  header: 'Score',
+                  header: t('Score'),
                   align: 'right',
                   render: (f) => (
                     <Badge tone={f.qualityScore >= 85 ? 'success' : f.qualityScore >= 70 ? 'neutral' : 'danger'}>

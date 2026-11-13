@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import { Building2, Truck } from 'lucide-react';
+import { useLang } from '@/i18n/LanguageContext';
 
 export interface MapMarker {
   id: string;
@@ -27,12 +28,14 @@ const toneBg = {
 export default function FakeMap({
   markers,
   height = 320,
-  caption = 'Live GPS · updates every 30 s',
+  caption,
 }: {
   markers: MapMarker[];
   height?: number;
   caption?: string;
 }) {
+  const { t } = useLang();
+  caption ??= t("Live GPS · updates every 30 s");
   return (
     <div
       className="relative w-full overflow-hidden rounded-lg border border-zinc-200 bg-[#EDF1E8]"

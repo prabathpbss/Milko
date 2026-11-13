@@ -2,11 +2,10 @@ import { lazy } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import AppLayout from '@/components/layout/AppLayout';
-import MobileShell from '@/components/layout/MobileShell';
 import Login from '@/pages/Login';
 
 // Screens load on demand (code-split) so the first download stays small.
-// The layouts wrap <Outlet /> in <Suspense> so the shell stays visible while a screen loads.
+// The layout wraps <Outlet /> in <Suspense> so the shell stays visible while a screen loads.
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Farmers = lazy(() => import('@/pages/farmers/Farmers'));
 const FarmerProfile = lazy(() => import('@/pages/farmers/FarmerProfile'));
@@ -24,9 +23,9 @@ const ErpSync = lazy(() => import('@/pages/admin/ErpSync'));
 const UsersRoles = lazy(() => import('@/pages/admin/UsersRoles'));
 const Settings = lazy(() => import('@/pages/admin/Settings'));
 const Masters = lazy(() => import('@/pages/admin/Masters'));
-const MobileCollect = lazy(() => import('@/pages/mobile/MobileCollect'));
-const MobileDriver = lazy(() => import('@/pages/mobile/MobileDriver'));
-const MobileFarmer = lazy(() => import('@/pages/mobile/MobileFarmer'));
+const FieldCollect = lazy(() => import('@/pages/mobile/MobileCollect'));
+const FieldDriver = lazy(() => import('@/pages/mobile/MobileDriver'));
+const FarmerPortal = lazy(() => import('@/pages/mobile/MobileFarmer'));
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { user } = useAuth();
@@ -65,21 +64,15 @@ export default function App() {
         <Route path="settings" element={<Settings />} />
         <Route path="masters" element={<Navigate to="/masters/regions" replace />} />
         <Route path="masters/:tab" element={<Masters />} />
+        <Route path="field/collect" element={<FieldCollect />} />
+        <Route path="field/driver" element={<FieldDriver />} />
+        <Route path="field/farmer" element={<FarmerPortal />} />
       </Route>
 
-      <Route
-        path="/mobile"
-        element={
-          <RequireAuth>
-            <MobileShell />
-          </RequireAuth>
-        }
-      >
-        <Route index element={<Navigate to="collect" replace />} />
-        <Route path="collect" element={<MobileCollect />} />
-        <Route path="driver" element={<MobileDriver />} />
-        <Route path="farmer" element={<MobileFarmer />} />
-      </Route>
+      {/* Old links to the former separate mobile shell */}
+      <Route path="/mobile/driver" element={<Navigate to="/field/driver" replace />} />
+      <Route path="/mobile/farmer" element={<Navigate to="/field/farmer" replace />} />
+      <Route path="/mobile/*" element={<Navigate to="/field/collect" replace />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -212,7 +212,7 @@ export default function Settings() {
 
           {section === 'Quality limits' && (
             <Card>
-              <CardHeader title="Quality limits & collection rules" subtitle="Applied at every collection counter and in the mobile app" />
+              <CardHeader title="Quality limits & collection rules" subtitle="Applied at every collection counter, on desktop and phone" />
               <CardBody>
                 <FormGrid>
                   <Field label="Minimum FAT %"><input className="input num" defaultValue={qualityLimits.minFat.toFixed(2)} /></Field>

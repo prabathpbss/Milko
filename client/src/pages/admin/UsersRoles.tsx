@@ -1,50 +1,95 @@
 import { useMemo, useState } from 'react';
-import clsx from 'clsx';
+import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Search, UserPlus } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
-import { Card, CardBody, CardHeader } from '@/components/ui/Card';
+import { Card } from '@/components/ui/Card';
 import { DataTable } from '@/components/ui/DataTable';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { Tabs } from '@/components/ui/Tabs';
 import { Field } from '@/components/ui/Field';
 import { Avatar, Modal } from '@/components/ui/misc';
-import { centers, permissionActions, permissionModules, roles as seedRoles, users as seedUsers, type AppUser } from '@/data/mock';
+import type { AppUser } from '@/data/mock';
+import {
+  approvalText,
+  mfaFor,
+  useActiveRoles,
+  useRoleMaster,
+  useScopesForRole,
+  userStore,
+  useUsers,
+  type RoleMaster,
+} from '@/data/access';
+import { num } from '@/lib/format';
 import { useToast } from '@/context/ToastContext';
 
 type TabId = 'users' | 'roles';
 
+const SIGN_IN_TEXT: Record<AppUser['signIn'], string> = {
+  SSO: 'Company account (SSO)',
+  Password: 'Email and password',
+  'Mobile OTP': 'Mobile number + SMS code',
+};
+
 export default function UsersRoles() {
   const toast = useToast();
+  const navigate = useNavigate();
+  const users = useUsers();
+  const roles = useRoleMaster();
+  const activeRoles = useActiveRoles();
   const [tab, setTab] = useState<TabId>('users');
-  const [users, setUsers] = useState(seedUsers);
-  const [roles, setRoles] = useState(seedRoles);
   const [q, setQ] = useState('');
-  const [roleName, setRoleName] = useState('Regional manager');
   const [invite, setInvite] = useState(false);
-  const [newUser, setNewUser] = useState({ name: '', email: '', role: 'Field officer', scope: 'Hingurakgoda CC' });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const firstRole = activeRoles.find((r) => r.name === 'Field officer')?.name ?? activeRoles[0]?.name ?? '';
+  const [newUser, setNewUser] = useState({ name: '', email: '', role: firstRole, scope: '' });
+
+  const scopes = useScopesForRole(newUser.role);
+  const inviteRole = roles.find((r) => r.name === newUser.role);
+  // Keep the chosen scope valid for the chosen role.
+  const scope = scopes.some((s) => s.name === newUser.scope) ? newUser.scope : scopes[0]?.name ?? '';
 
   const shown = useMemo(() => {
     const t = q.trim().toLowerCase();
     return users.filter((u) => !t || [u.name, u.email, u.role, u.scope].some((v) => v.toLowerCase().includes(t)));
   }, [q, users]);
 
-  const role = roles.find((r) => r.name === roleName)!;
-
-  const togglePerm = (m: string, a: string) =>
-    setRoles((rs) =>
-      rs.map((r) => (r.name === roleName ? { ...r, perms: { ...r.perms, [m]: { ...r.perms[m], [a]: !r.perms[m][a] } } } : r)),
-    );
+  const openInvite = () => {
+    setNewUser({ name: '', email: '', role: firstRole, scope: '' });
+    setErrors({});
+    setInvite(true);
+  };
 
   const sendInvite = () => {
-    if (!newUser.name.trim() || !newUser.email.includes('@')) return toast('Enter a name and a valid email.', 'error');
-    setUsers((u) => [
-      ...u,
-      { id: `U-${100 + u.length}`, ...newUser, signIn: 'Password', mfa: 'Off', device: '—', lastActive: '—', status: 'Invited' },
+    const otp = inviteRole?.signIn === 'Mobile OTP';
+    const e: Record<string, string> = {};
+    if (!newUser.name.trim()) e.name = 'Enter the full name.';
+    if (otp ? !/^\+?\d[\d\s]{8,}$/.test(newUser.email.trim()) : !/^\S+@\S+\.\S+$/.test(newUser.email.trim()))
+      e.email = otp ? 'Enter a mobile number, e.g. +94 77 123 4567.' : 'Enter a valid email.';
+    if (!inviteRole) e.role = 'Pick a role.';
+    if (!scope) e.scope = 'No active scope fits this role — add one in the Access scope master.';
+    setErrors(e);
+    if (Object.keys(e).length || !inviteRole) return;
+
+    userStore.set((all) => [
+      ...all,
+      {
+        id: `U-${String(100 + all.length).padStart(3, '0')}`,
+        name: newUser.name.trim(),
+        email: otp ? '—' : newUser.email.trim(),
+        role: inviteRole.name,
+        scope,
+        signIn: inviteRole.signIn,
+        mfa: mfaFor(inviteRole),
+        device: otp && inviteRole.bindDevice ? 'Binds on first sign-in' : '—',
+        lastActive: '—',
+        status: 'Invited',
+      },
     ]);
     setInvite(false);
-    setNewUser({ name: '', email: '', role: 'Field officer', scope: 'Hingurakgoda CC' });
-    toast(`Invitation sent to ${newUser.email}`);
+    toast(otp ? `SMS invitation sent to ${newUser.email.trim()}` : `Invitation sent to ${newUser.email.trim()}`);
   };
+
+  const usersWithRole = (name: string) => users.filter((u) => u.role === name).length;
 
   return (
     <>
@@ -54,10 +99,10 @@ export default function UsersRoles() {
         description="Who can sign in, what they can see and which approvals they can make."
         actions={
           <>
-            <button className="btn btn-secondary" onClick={() => toast('New role created', 'info')}>
+            <button className="btn btn-secondary" onClick={() => navigate('/masters/roles', { state: { newRole: true } })}>
               <Plus className="h-4 w-4" /> New role
             </button>
-            <button className="btn btn-primary" onClick={() => setInvite(true)}>
+            <button className="btn btn-primary" onClick={openInvite}>
               <UserPlus className="h-4 w-4" /> Invite user
             </button>
           </>
@@ -70,7 +115,7 @@ export default function UsersRoles() {
         className="mb-6"
         tabs={[
           { id: 'users', label: 'Users', count: users.length },
-          { id: 'roles', label: 'Roles & permissions', count: roles.length },
+          { id: 'roles', label: 'Roles', count: roles.length },
         ]}
       />
 
@@ -120,7 +165,7 @@ export default function UsersRoles() {
                     <button
                       className="btn btn-secondary btn-sm"
                       onClick={() => {
-                        setUsers((all) => all.map((x) => (x.id === u.id ? { ...x, status: 'Active' } : x)));
+                        userStore.set((all) => all.map((x) => (x.id === u.id ? { ...x, status: 'Active' } : x)));
                         toast(`${u.name} unlocked`);
                       }}
                     >
@@ -138,73 +183,29 @@ export default function UsersRoles() {
       )}
 
       {tab === 'roles' && (
-        <div className="grid gap-6 xl:grid-cols-4">
-          <Card className="h-fit">
-            <ul className="p-2">
-              {roles.map((r) => (
-                <li key={r.name}>
-                  <button
-                    type="button"
-                    onClick={() => setRoleName(r.name)}
-                    className={clsx(
-                      'flex min-h-[44px] w-full items-center justify-between rounded-lg px-3 text-left text-sm transition-colors',
-                      r.name === roleName ? 'bg-brand-50 font-medium text-brand-700' : 'text-zinc-700 hover:bg-zinc-100',
-                    )}
-                  >
-                    {r.name}
-                    <span className="num text-xs text-zinc-500">{r.users}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </Card>
-          <Card className="xl:col-span-3">
-            <CardHeader
-              title={role.name}
-              subtitle={`Data scope: ${role.scope} · approval limit ${role.limit}`}
-              actions={
-                <button className="btn btn-primary btn-sm" onClick={() => toast(`${role.name} permissions saved`)}>
-                  Save role
-                </button>
-              }
-            />
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="border-b border-zinc-200 bg-zinc-50/80">
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">Module</th>
-                    {permissionActions.map((a) => (
-                      <th key={a} className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                        {a}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-100">
-                  {permissionModules.map((m) => (
-                    <tr key={m} className="hover:bg-zinc-50">
-                      <td className="whitespace-nowrap px-4 py-2.5 font-medium">{m}</td>
-                      {permissionActions.map((a) => (
-                        <td key={a} className="px-3 py-2.5 text-center">
-                          <input
-                            type="checkbox"
-                            className="h-4 w-4 accent-brand-600"
-                            aria-label={`${m}: ${a}`}
-                            checked={role.perms[m][a]}
-                            onChange={() => togglePerm(m, a)}
-                          />
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        <Card>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 p-4 text-sm text-zinc-600">
+            <p>Roles, permissions and access scopes are maintained in the masters. Click a role to edit it.</p>
+            <div className="flex gap-2">
+              <Link to="/masters/roles" className="btn btn-secondary btn-sm">Role master</Link>
+              <Link to="/masters/scopes" className="btn btn-secondary btn-sm">Access scope master</Link>
             </div>
-            <CardBody className="border-t border-zinc-100 text-xs text-zinc-500">
-              Field officers and tanker drivers sign in with a mobile number and SMS code, and each phone is bound to one user.
-            </CardBody>
-          </Card>
-        </div>
+          </div>
+          <DataTable<RoleMaster>
+            rows={roles}
+            rowKey={(r) => r.code}
+            onRowClick={(r) => navigate('/masters/roles', { state: { code: r.code } })}
+            columns={[
+              { key: 'name', header: 'Role', render: (r) => <span className="font-medium">{r.name}</span> },
+              { key: 'levels', header: 'Allowed scopes', className: 'text-zinc-600', render: (r) => r.levels.join(', ') },
+              { key: 'limit', header: 'Approval limit', align: 'right', mono: true, render: approvalText },
+              { key: 'signIn', header: 'Sign-in', render: (r) => r.signIn },
+              { key: 'users', header: 'Users', align: 'right', mono: true, render: (r) => num(r.users) },
+              { key: 'listed', header: 'In this list', align: 'right', mono: true, render: (r) => usersWithRole(r.name) },
+              { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
+            ]}
+          />
+        </Card>
       )}
 
       <Modal
@@ -219,23 +220,70 @@ export default function UsersRoles() {
         }
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Full name" className="sm:col-span-2">
+          <Field label="Full name" className="sm:col-span-2" error={errors.name}>
             <input className="input" value={newUser.name} onChange={(e) => setNewUser((u) => ({ ...u, name: e.target.value }))} />
           </Field>
-          <Field label="Email" className="sm:col-span-2">
-            <input className="input" type="email" value={newUser.email} onChange={(e) => setNewUser((u) => ({ ...u, email: e.target.value }))} />
-          </Field>
-          <Field label="Role">
-            <select className="input" value={newUser.role} onChange={(e) => setNewUser((u) => ({ ...u, role: e.target.value }))}>
-              {roles.map((r) => <option key={r.name}>{r.name}</option>)}
+          <Field label="Role" error={errors.role}>
+            <select className="input" value={newUser.role} onChange={(e) => setNewUser((u) => ({ ...u, role: e.target.value, scope: '' }))}>
+              {activeRoles.map((r) => (
+                <option key={r.code}>{r.name}</option>
+              ))}
             </select>
           </Field>
-          <Field label="Scope">
-            <select className="input" value={newUser.scope} onChange={(e) => setNewUser((u) => ({ ...u, scope: e.target.value }))}>
-              <option>All regions</option>
-              {centers.map((c) => <option key={c.id}>{c.name}</option>)}
+          <Field
+            label="Scope"
+            error={errors.scope}
+            hint={inviteRole ? `${inviteRole.levels.join(' / ')} scopes only` : undefined}
+          >
+            <select className="input" value={scope} onChange={(e) => setNewUser((u) => ({ ...u, scope: e.target.value }))} disabled={!scopes.length}>
+              {!scopes.length && <option value="">No scope available</option>}
+              {(['Company', 'Region', 'Center', 'Route'] as const).map((lvl) => {
+                const group = scopes.filter((s) => s.level === lvl);
+                return group.length ? (
+                  <optgroup key={lvl} label={lvl}>
+                    {group.map((s) => (
+                      <option key={s.code} value={s.name}>{s.name}</option>
+                    ))}
+                  </optgroup>
+                ) : null;
+              })}
             </select>
           </Field>
+          <Field
+            label={inviteRole?.signIn === 'Mobile OTP' ? 'Mobile number' : 'Email'}
+            className="sm:col-span-2"
+            error={errors.email}
+          >
+            <input
+              className="input"
+              type={inviteRole?.signIn === 'Mobile OTP' ? 'tel' : 'email'}
+              inputMode={inviteRole?.signIn === 'Mobile OTP' ? 'tel' : 'email'}
+              value={newUser.email}
+              onChange={(e) => setNewUser((u) => ({ ...u, email: e.target.value }))}
+            />
+          </Field>
+          {inviteRole && (
+            <div className="space-y-2 rounded-lg bg-zinc-50 p-3 text-xs text-zinc-600 sm:col-span-2">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+              <dt className="font-medium text-zinc-700">Sign-in</dt>
+              <dd>
+                {SIGN_IN_TEXT[inviteRole.signIn]}
+                {inviteRole.signIn === 'Mobile OTP' ? (inviteRole.bindDevice ? ' · bound to one phone' : '') : inviteRole.twoStep ? ' · 2-step on' : ' · 2-step off'}
+              </dd>
+              <dt className="font-medium text-zinc-700">Approvals</dt>
+              <dd>{approvalText(inviteRole)}</dd>
+              </dl>
+              <p>
+                <Link to="/masters/roles" state={{ code: inviteRole.code }} className="font-medium text-brand-700 hover:underline">
+                  Change this role
+                </Link>
+                {' · '}
+                <Link to="/masters/scopes" className="font-medium text-brand-700 hover:underline">
+                  Manage scopes
+                </Link>
+              </p>
+            </div>
+          )}
         </div>
       </Modal>
     </>

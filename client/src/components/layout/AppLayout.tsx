@@ -9,9 +9,12 @@ import { useClickOutside } from '@/hooks/useClickOutside';
 import { notifications } from '@/data/mock';
 import { Avatar } from '@/components/ui/misc';
 import ThemeToggle from '@/components/ui/ThemeToggle';
+import LanguageSwitch from "@/components/ui/LanguageSwitch";
+import { useLang } from "@/i18n/LanguageContext";
 import PageSkeleton from '@/components/ui/PageSkeleton';
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+  const { t } = useLang();
   return (
     <div className="flex h-full flex-col">
       <Link
@@ -21,15 +24,15 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       >
         <img src={logo} alt="MILCO" className="h-10 w-auto rounded-md bg-[#fff] p-1" />
         <span className="text-xs font-medium leading-tight text-zinc-500">
-          Farmer &amp; Milk
+          {t("Farmer & Milk")}
           <br />
-          Collection
+          {t("Collection")}
         </span>
       </Link>
-      <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Main">
+      <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label={t("Main")}>
         {navGroups.map((g) => (
           <div key={g.label} className="mb-5">
-            <p className="px-3 pb-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-500">{g.label}</p>
+            <p className="px-3 pb-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-500">{t(g.label)}</p>
             <ul className="space-y-0.5">
               {g.items.map((item) => (
                 <li key={item.to}>
@@ -52,7 +55,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                             isActive ? 'text-brand-600' : 'text-zinc-400 group-hover:text-zinc-600',
                           )}
                         />
-                        <span className="flex-1 truncate">{item.label}</span>
+                        <span className="flex-1 truncate">{t(item.label)}</span>
                         {item.badge ? (
                           <span className="num rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
                             {item.badge}
@@ -73,6 +76,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 function NotificationsMenu() {
+  const { t } = useLang();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const close = useCallback(() => setOpen(false), []);
@@ -84,7 +88,7 @@ function NotificationsMenu() {
       <button
         type="button"
         className="btn btn-ghost btn-icon relative"
-        aria-label={`Notifications, ${unread} unread`}
+        aria-label={t("Notifications, {n} unread", { n: unread })}
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
       >
@@ -96,9 +100,9 @@ function NotificationsMenu() {
       {open && (
         <div className="absolute right-0 top-12 z-40 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl">
           <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
-            <span className="text-sm font-semibold">Notifications</span>
+            <span className="text-sm font-semibold">{t("Notifications")}</span>
             <button type="button" className="text-xs font-medium text-brand-700 hover:underline">
-              Mark all as read
+              {t("Mark all as read")}
             </button>
           </div>
           <ul className="max-h-96 divide-y divide-zinc-100 overflow-y-auto">
@@ -109,8 +113,8 @@ function NotificationsMenu() {
                     className={clsx('mt-1.5 h-2 w-2 shrink-0 rounded-full', n.unread ? 'bg-brand-600' : 'bg-zinc-300')}
                   />
                   <span className="min-w-0">
-                    <span className="block text-sm text-zinc-900">{n.title}</span>
-                    <span className="block text-xs text-zinc-500">{n.time}</span>
+                    <span className="block text-sm text-zinc-900">{t(n.title)}</span>
+                    <span className="block text-xs text-zinc-500">{t(n.time)}</span>
                   </span>
                 </Link>
               </li>
@@ -123,6 +127,7 @@ function NotificationsMenu() {
 }
 
 function UserMenu() {
+  const { t } = useLang();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -154,7 +159,7 @@ function UserMenu() {
             <p className="mt-1 text-xs text-zinc-500">{user.scope}</p>
           </div>
           <Link to="/users" onClick={close} className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-zinc-50">
-            <UserCircle2 className="h-4 w-4 text-zinc-500" /> My profile
+            <UserCircle2 className="h-4 w-4 text-zinc-500" /> {t("My profile")}
           </Link>
           <button
             type="button"
@@ -164,7 +169,7 @@ function UserMenu() {
             }}
             className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-700 hover:bg-red-50"
           >
-            <LogOut className="h-4 w-4" /> Sign out
+            <LogOut className="h-4 w-4" /> {t("Sign out")}
           </button>
         </div>
       )}
@@ -173,6 +178,7 @@ function UserMenu() {
 }
 
 export default function AppLayout() {
+  const { t } = useLang();
   const [drawer, setDrawer] = useState(false);
   const location = useLocation();
 
@@ -198,7 +204,7 @@ export default function AppLayout() {
         href="#main"
         className="sr-only z-[60] rounded-lg bg-white px-4 py-2 text-sm font-medium shadow-lg focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
       >
-        Skip to content
+        {t("Skip to content")}
       </a>
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-zinc-200 bg-white lg:block">
@@ -207,7 +213,7 @@ export default function AppLayout() {
 
       {/* Mobile drawer */}
       {drawer && (
-        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Main menu">
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label={t("Main menu")}>
           <div className="absolute inset-0 bg-zinc-950/50" onClick={() => setDrawer(false)} aria-hidden />
           <aside className="absolute inset-y-0 left-0 w-[min(288px,85vw)] overscroll-contain bg-white pb-[env(safe-area-inset-bottom)] shadow-xl">
             <button
@@ -215,7 +221,7 @@ export default function AppLayout() {
               type="button"
               onClick={() => setDrawer(false)}
               className="btn btn-ghost btn-icon absolute right-2 top-3"
-              aria-label="Close menu"
+              aria-label={t("Close menu")}
             >
               <X className="h-5 w-5" />
             </button>
@@ -232,15 +238,15 @@ export default function AppLayout() {
               type="button"
               className="btn btn-ghost btn-icon -ml-2 lg:hidden"
               onClick={() => setDrawer(true)}
-              aria-label="Open menu"
+              aria-label={t("Open menu")}
               aria-expanded={drawer}
             >
               <Menu className="h-5 w-5" />
             </button>
             <label className="relative hidden max-w-md flex-1 sm:block">
-              <span className="sr-only">Search</span>
+              <span className="sr-only">{t("Search")}</span>
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-              <input className="input pl-9" placeholder="Search farmer, center, tanker, document…" />
+              <input className="input pl-9" placeholder={t("Search farmer, center, tanker, document…")} />
             </label>
             <div className="flex-1 sm:hidden" />
             <div className="ml-auto flex items-center gap-1 sm:gap-2">
@@ -249,8 +255,9 @@ export default function AppLayout() {
                 className="hidden items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800 hover:bg-emerald-100 md:inline-flex"
               >
                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                SAP B1 · synced 09:42
+                {t("SAP B1 · synced {time}", { time: "09:42" })}
               </Link>
+              <LanguageSwitch />
               <ThemeToggle />
               <NotificationsMenu />
               <UserMenu />

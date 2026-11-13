@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type DragEvent } from 'react';
 import clsx from 'clsx';
 import { Camera, FileText, Plus, UploadCloud, X } from 'lucide-react';
+import { useLang } from "@/i18n/LanguageContext";
 
 export interface Attachment {
   id: string;
@@ -39,7 +40,7 @@ export default function AttachmentGrid({
   accept = 'image/*,.pdf',
   maxFiles = 20,
   maxSizeMb = 10,
-  hint = 'Images or PDF, up to 10 MB each',
+  hint,
   onReject,
 }: {
   value: Attachment[];
@@ -59,14 +60,15 @@ export default function AttachmentGrid({
   latest.current = value;
   useEffect(() => () => latest.current.forEach((a) => a.url && URL.revokeObjectURL(a.url)), []);
 
+  const { t } = useLang();
   const add = (list: FileList | null) => {
     if (!list?.length) return;
     const room = maxFiles - value.length;
     const files = Array.from(list);
     const tooBig = files.filter((f) => f.size > maxSizeMb * MB);
     const ok = files.filter((f) => f.size <= maxSizeMb * MB).slice(0, Math.max(0, room));
-    if (tooBig.length) onReject?.(`${tooBig.length} file(s) over ${maxSizeMb} MB were skipped`);
-    else if (files.length > room) onReject?.(`Only ${maxFiles} attachments allowed`);
+    if (tooBig.length) onReject?.(t("{n} file(s) over {mb} MB were skipped", { n: tooBig.length, mb: maxSizeMb }));
+    else if (files.length > room) onReject?.(t("Only {n} attachments allowed", { n: maxFiles }));
     if (ok.length) onChange([...value, ...ok.map(toAttachment)]);
   };
 
@@ -114,7 +116,7 @@ export default function AttachmentGrid({
             <button
               type="button"
               onClick={() => remove(a.id)}
-              aria-label={`Remove ${a.name}`}
+              aria-label={t("Remove {name}", { name: a.name })}
               className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-[#18181B]/70 text-[#fff] hover:bg-[#18181B]"
             >
               <X className="h-3.5 w-3.5" />
@@ -130,7 +132,7 @@ export default function AttachmentGrid({
               className="flex aspect-[4/3] h-full min-h-[120px] w-full flex-col items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white text-zinc-500 hover:border-brand-600 hover:text-brand-700"
             >
               <Plus className="h-5 w-5" />
-              <span className="text-xs font-medium">Add files</span>
+              <span className="text-xs font-medium">{t("Add files")}</span>
             </button>
           </li>
         )}
@@ -138,13 +140,13 @@ export default function AttachmentGrid({
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <button type="button" className="btn btn-secondary btn-sm" onClick={() => browseRef.current?.click()}>
-          <UploadCloud className="h-3.5 w-3.5" /> Browse
+          <UploadCloud className="h-3.5 w-3.5" /> {t("Browse")}
         </button>
         <button type="button" className="btn btn-secondary btn-sm" onClick={() => cameraRef.current?.click()}>
-          <Camera className="h-3.5 w-3.5" /> Take photo
+          <Camera className="h-3.5 w-3.5" /> {t("Take photo")}
         </button>
         <span className="text-xs text-zinc-500">
-          {hint} · drag & drop supported · {value.length}/{maxFiles}
+          {hint ?? t('Images or PDF, up to 10 MB each')} · {t('drag & drop supported')} · {value.length}/{maxFiles}
         </span>
       </div>
 
