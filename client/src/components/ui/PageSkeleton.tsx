@@ -1,7 +1,10 @@
+import { useLang } from "@/i18n/LanguageContext";
+
 /** Placeholder shown while a code-split screen loads. Mirrors the page header + cards layout. */
 export default function PageSkeleton({ compact = false }: { compact?: boolean }) {
+  const { t } = useLang();
   return (
-    <div role="status" aria-label="Loading" className="animate-pulse">
+    <div role="status" aria-label={t("Loading")} className="animate-pulse">
       {!compact && (
         <div className="mb-6 space-y-2">
           <div className="h-3 w-24 rounded bg-zinc-200" />
@@ -15,7 +18,7 @@ export default function PageSkeleton({ compact = false }: { compact?: boolean })
         ))}
       </div>
       <div className="card h-72" />
-      <span className="sr-only">Loading…</span>
+      <span className="sr-only">{t("Loading…")}</span>
     </div>
   );
 }
