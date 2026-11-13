@@ -10,6 +10,7 @@ import AttachmentGrid, { type Attachment } from '@/components/ui/AttachmentGrid'
 import { KeyValue } from '@/components/ui/misc';
 import { centers, routes } from '@/data/mock';
 import { useToast } from '@/context/ToastContext';
+import { activeTemplateNames } from '@/data/priceTemplates';
 
 const steps = ['Personal details', 'Farm & herd', 'Bank & payment', 'Contract & category', 'Documents', 'Review & submit'];
 
@@ -270,9 +271,9 @@ export default function Onboarding() {
               <FormGrid>
                 <Field label="Price template" className="sm:col-span-2">
                   <select className="input" value={form.template} onChange={set('template')}>
-                    <option>Standard · North Central 2026</option>
-                    <option>Silver · North Central 2026</option>
-                    <option>Gold · North Central 2026</option>
+                    {activeTemplateNames().map((name) => (
+                      <option key={name}>{name}</option>
+                    ))}
                   </select>
                 </Field>
                 <Field label="Starting category" hint="Reviewed every quarter">

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { Calculator, Plus, RefreshCcw, Send } from 'lucide-react';
@@ -10,6 +11,7 @@ import { Field } from '@/components/ui/Field';
 import { contractRules, contracts, farmerById, type Contract } from '@/data/mock';
 import { bandIndex, categoryPremium, fatBands, priceMatrix, ratePerLitre, snfBands } from '@/lib/pricing';
 import { useToast } from '@/context/ToastContext';
+import { activeTemplateNames } from '@/data/priceTemplates';
 
 type F = 'all' | Contract['status'];
 
@@ -106,11 +108,11 @@ export default function Contracts() {
             />
             <CardBody>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                <Field label="Price template">
+                <Field label="Price template" hint={<Link to="/price-templates" className="font-medium text-brand-700 hover:underline">Manage price templates</Link>}>
                   <select className="input" defaultValue={c.template} key={c.id + 't'}>
-                    <option>{c.template}</option>
-                    <option>Gold · North Central 2026</option>
-                    <option>Silver · North Central 2026</option>
+                    {Array.from(new Set([c.template, ...activeTemplateNames()])).map((name) => (
+                      <option key={name}>{name}</option>
+                    ))}
                   </select>
                 </Field>
                 <Field label="Category" hint={`Premium Rs ${categoryPremium[c.category].toFixed(2)} / L`}>

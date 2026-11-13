@@ -44,6 +44,7 @@ const map: Record<string, Tone> = {
   Missing: 'danger',
 
   Draft: 'info',
+  'Pending approval': 'warning',
   'At plant': 'info',
   Next: 'info',
   'Retest booked': 'info',

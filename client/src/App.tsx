@@ -12,6 +12,7 @@ const Farmers = lazy(() => import('@/pages/farmers/Farmers'));
 const FarmerProfile = lazy(() => import('@/pages/farmers/FarmerProfile'));
 const Onboarding = lazy(() => import('@/pages/farmers/Onboarding'));
 const Contracts = lazy(() => import('@/pages/farmers/Contracts'));
+const PriceTemplates = lazy(() => import('@/pages/farmers/PriceTemplates'));
 const Collection = lazy(() => import('@/pages/collection/Collection'));
 const Logistics = lazy(() => import('@/pages/collection/Logistics'));
 const Quality = lazy(() => import('@/pages/collection/Quality'));
@@ -50,6 +51,7 @@ export default function App() {
         <Route path="farmers/:id" element={<FarmerProfile />} />
         <Route path="onboarding" element={<Onboarding />} />
         <Route path="contracts" element={<Contracts />} />
+        <Route path="price-templates" element={<PriceTemplates />} />
         <Route path="collection" element={<Collection />} />
         <Route path="logistics" element={<Logistics />} />
         <Route path="quality" element={<Quality />} />

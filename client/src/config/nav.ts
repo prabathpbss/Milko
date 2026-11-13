@@ -13,6 +13,7 @@ import {
   ShieldAlert,
   Smartphone,
   Sprout,
+  Tags,
   Truck,
   UserPlus,
   Users,
@@ -42,7 +43,8 @@ export const navGroups: NavGroup[] = [
     items: [
       { to: '/farmers', label: 'Farmer list', icon: Users },
       { to: '/onboarding', label: 'Onboarding', icon: UserPlus, badge: 3 },
-      { to: '/contracts', label: 'Contracts & pricing', icon: FileSignature },
+      { to: '/contracts', label: 'Contracts', icon: FileSignature },
+      { to: '/price-templates', label: 'Price templates', icon: Tags },
     ],
   },
   {

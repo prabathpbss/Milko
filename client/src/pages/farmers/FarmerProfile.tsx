@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { FileText, MapPin, MessageSquare, Pencil, Phone, Plus, ShieldAlert } from 'lucide-react';
+import { FileText, MapPin, MessageSquare, Pencil, Phone, Plus } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
@@ -19,9 +19,9 @@ import { Tabs } from '@/components/ui/Tabs';
 import { DataTable } from '@/components/ui/DataTable';
 import { Avatar, KeyValue, Modal } from '@/components/ui/misc';
 import { Field } from '@/components/ui/Field';
-import FakeMap from '@/components/ui/FakeMap';
 import {
   deliveries,
+  disputes,
   farmerAudit,
   farmerById,
   farmerCompliance,
@@ -34,8 +34,9 @@ import {
 import { lkr, num } from '@/lib/format';
 import { useToast } from '@/context/ToastContext';
 import { useChartColors } from '@/lib/chartTheme';
+import FarmerDisputes from './FarmerDisputes';
 
-type TabId = 'overview' | 'supply' | 'payments' | 'deductions' | 'compliance' | 'documents' | 'audit';
+type TabId = 'overview' | 'supply' | 'payments' | 'deductions' | 'compliance' | 'documents' | 'disputes' | 'audit';
 
 export default function FarmerProfile() {
   const { id } = useParams();
@@ -45,6 +46,7 @@ export default function FarmerProfile() {
   const [tab, setTab] = useState<TabId>('overview');
   const [dedOpen, setDedOpen] = useState(false);
   const [deductions, setDeductions] = useState(farmerDeductions);
+  const disputeCount = disputes.filter((d) => d.farmerId === farmer.id && d.status !== 'Resolved').length;
 
   const series = useMemo(() => farmerSupplySeries(farmer.avgLitres / 2, farmer.fat, farmer.snf), [farmer]);
   const myDeliveries = deliveries.filter((d) => d.farmerId === farmer.id);
@@ -80,9 +82,6 @@ export default function FarmerProfile() {
             <button className="btn btn-secondary" onClick={() => toast('Edit mode opened', 'info')}>
               <Pencil className="h-4 w-4" /> Edit
             </button>
-            <Link to="/quality" className="btn btn-primary">
-              <ShieldAlert className="h-4 w-4" /> Log dispute
-            </Link>
           </>
         }
       />
@@ -140,6 +139,7 @@ export default function FarmerProfile() {
               { id: 'deductions', label: 'Deductions & advances', count: deductions.length },
               { id: 'compliance', label: 'Compliance' },
               { id: 'documents', label: 'Documents' },
+              { id: 'disputes', label: 'Disputes', count: disputeCount || undefined },
               { id: 'audit', label: 'Audit trail' },
             ]}
           />
@@ -168,14 +168,18 @@ export default function FarmerProfile() {
               <CardBody className="space-y-4">
                 <KeyValue
                   items={[
-                    ['GPS', farmer.gps],
                     ['Land', `${farmer.landAcres} acres`],
                     ['Herd', `${farmer.totalCattle} cattle · ${farmer.milkingCows} milking`],
                     ['Breed', farmer.breed],
                     ['Capacity', `${farmer.capacity} L / day`],
                   ]}
                 />
-                <FakeMap height={150} caption="Farm location" markers={[{ id: 'f', x: 50, y: 45, label: farmer.name, kind: 'center' }]} />
+                <div>
+                  <span className="label mb-1.5 block">Farm location</span>
+                  <p className="min-h-[64px] whitespace-pre-line rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800">
+                    {farmer.address}
+                  </p>
+                </div>
               </CardBody>
             </Card>
           </div>
@@ -307,6 +311,8 @@ export default function FarmerProfile() {
           </ul>
         </Card>
       )}
+
+      {tab === 'disputes' && <FarmerDisputes farmerId={farmer.id} />}
 
       {tab === 'audit' && (
         <Card>

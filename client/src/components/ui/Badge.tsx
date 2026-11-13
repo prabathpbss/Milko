@@ -45,3 +45,11 @@ export function StatusBadge({ status, className }: { status: string; className?:
     </Badge>
   );
 }
+
+/** Response-target badge for disputes: hours left, or hours overdue when negative. */
+export function SlaBadge({ hours, resolved }: { hours: number; resolved?: boolean }) {
+  if (resolved) return <Badge tone="neutral">Closed</Badge>;
+  if (hours < 0) return <Badge tone="danger" dot>{Math.abs(hours)} h over</Badge>;
+  if (hours < 24) return <Badge tone="warning" dot>{hours} h left</Badge>;
+  return <Badge tone="success" dot>{hours} h left</Badge>;
+}

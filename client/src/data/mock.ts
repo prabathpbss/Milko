@@ -371,6 +371,25 @@ export const disputes: Dispute[] = [
     summary: 'Farmer disputes the alcohol test failure.',
     timeline: [{ time: '08 Nov 07:30', who: 'Farmer app', text: 'Dispute raised.' }],
   },
+  {
+    id: 'DSP-2026-0309', farmer: 'W. M. Sunil Bandara', farmerId: 'MF-004812', category: 'Payment', raised: '09 Nov', owner: 'Finance · R. Peiris', slaHours: 20, status: 'In approval', value: 6450, linked: 'PR-2026-10B',
+    summary: 'Gold category premium (Rs 5 / L) was not applied for 16–31 Oct; the farmer asks for the difference on 1,290 L.',
+    timeline: [
+      { time: '09 Nov 10:12', who: 'Farmer app', text: 'Dispute raised with the payment slip.' },
+      { time: '10 Nov 14:30', who: 'Finance', text: 'Confirmed: category upgrade was approved on 15 Oct but the price template was not updated.' },
+      { time: '11 Nov 09:05', who: 'Finance', text: 'Adjustment of Rs 6,450 sent to the Regional Manager for approval.' },
+    ],
+  },
+  {
+    id: 'DSP-2026-0244', farmer: 'W. M. Sunil Bandara', farmerId: 'MF-004812', category: 'Quality', raised: '03 Oct', owner: 'QA · L. Silva', slaHours: 0, status: 'Resolved', value: 2380, linked: 'EX-26-10-0122',
+    summary: 'Evening delivery on 3 Oct rejected for a high SNF reading; the farmer disputed the result.',
+    timeline: [
+      { time: '03 Oct 17:20', who: 'Counter 1', text: 'Delivery rejected: SNF 9.4, analyser flagged.' },
+      { time: '03 Oct 18:05', who: 'Field officer', text: 'Dispute raised on behalf of the farmer.' },
+      { time: '04 Oct 11:40', who: 'QA officer', text: 'Analyser calibration error found on Counter 1. Rejection reversed.' },
+      { time: '05 Oct 08:00', who: 'Finance', text: 'Rs 2,380 paid in the 1–15 Oct run. Closed.' },
+    ],
+  },
 ];
 
 /* ───────────── Payment run ───────────── */
