@@ -79,7 +79,17 @@ export default function Onboarding() {
   };
 
   const next = () => {
-    if (!validate()) return;
+    if (!validate()) {
+      // Move focus to the first field with an error so keyboard and screen-reader users land on it
+      requestAnimationFrame(() =>
+        document
+          .querySelector('[data-field-error]')
+          ?.closest('label')
+          ?.querySelector<HTMLElement>('input, select, textarea')
+          ?.focus(),
+      );
+      return;
+    }
     setStep((s) => Math.min(steps.length - 1, s + 1));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };

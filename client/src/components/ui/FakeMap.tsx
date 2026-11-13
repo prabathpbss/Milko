@@ -73,7 +73,7 @@ export default function FakeMap({
           </button>
         );
       })}
-      <span className="absolute bottom-2 left-2 rounded-md bg-white/95 px-2 py-1 text-[11px] text-zinc-600 shadow-sm">
+      <span className="absolute bottom-2 left-2 rounded-md bg-white/95 px-2 py-1 text-xs text-zinc-600 shadow-sm">
         {caption}
       </span>
     </div>

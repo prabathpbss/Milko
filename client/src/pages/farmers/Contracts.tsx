@@ -144,9 +144,9 @@ export default function Contracts() {
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="border-b border-zinc-200 bg-zinc-50/80">
-                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-zinc-500">FAT % \ SNF %</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">FAT % \ SNF %</th>
                     {snfBands.map((b) => (
-                      <th key={b.label} className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                      <th key={b.label} className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500">
                         {b.label}
                       </th>
                     ))}

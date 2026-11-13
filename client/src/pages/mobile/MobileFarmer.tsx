@@ -55,7 +55,7 @@ export default function MobileFarmer() {
           <ul className="space-y-2">
             {messages.map((m) => (
               <li key={m.tag} className="flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-3">
-                <span className={clsx('rounded-full px-2 py-0.5 text-[11px] font-semibold', m.tone)}>{m.tag}</span>
+                <span className={clsx('rounded-full px-2 py-0.5 text-xs font-semibold', m.tone)}>{m.tag}</span>
                 <span className="text-sm leading-snug">{m.text}</span>
               </li>
             ))}
@@ -92,7 +92,7 @@ export default function MobileFarmer() {
           { label: 'Payments', icon: Wallet },
           { label: 'Contract', icon: FileText },
         ].map((t) => (
-          <button key={t.label} type="button" className={clsx('flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium', t.active ? 'text-brand-700' : 'text-zinc-500')}>
+          <button key={t.label} type="button" className={clsx('flex h-16 flex-col items-center justify-center gap-1 text-xs font-medium', t.active ? 'text-brand-700' : 'text-zinc-500')}>
             <t.icon className="h-5 w-5" />
             {t.label}
           </button>

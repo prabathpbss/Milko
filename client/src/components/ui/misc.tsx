@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { initials } from '@/lib/format';
 
@@ -113,22 +113,58 @@ export function Modal({
   children: ReactNode;
   footer?: ReactNode;
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
+  // Focus management: move focus in, keep Tab inside, restore focus on close, lock page scroll.
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const previous = document.activeElement as HTMLElement | null;
+    const focusables = () =>
+      Array.from(
+        dialogRef.current?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      );
+    (focusables().find((el) => el.matches('input, select, textarea')) ?? dialogRef.current)?.focus();
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') return closeRef.current();
+      if (e.key !== 'Tab') return;
+      const els = focusables();
+      if (!els.length) return;
+      const first = els[0];
+      const last = els[els.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = overflow;
+      previous?.focus?.();
+    };
+  }, [open]);
 
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
-      <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-[1px]" onClick={onClose} aria-hidden />
+      <div className="absolute inset-0 bg-zinc-950/50" onClick={onClose} aria-hidden />
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="relative flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-white shadow-xl sm:max-w-lg sm:rounded-2xl"
+        className="relative flex max-h-[92vh] w-full flex-col overscroll-contain rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-xl outline-none sm:max-w-lg sm:rounded-2xl sm:pb-0"
       >
         <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-4">
           <h2 className="text-base font-semibold">{title}</h2>
@@ -136,7 +172,7 @@ export function Modal({
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="overflow-y-auto p-5">{children}</div>
+        <div className="overflow-y-auto overscroll-contain p-5">{children}</div>
         {footer && <div className="flex flex-wrap justify-end gap-2 border-t border-zinc-100 px-5 py-4">{footer}</div>}
       </div>
     </div>

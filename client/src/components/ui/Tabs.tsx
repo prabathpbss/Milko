@@ -18,7 +18,25 @@ export function Tabs<T extends string>({
   className?: string;
 }) {
   return (
-    <div role="tablist" className={clsx('scrollbar-none flex gap-1 overflow-x-auto border-b border-zinc-200', className)}>
+    <div
+      role="tablist"
+      className={clsx('scrollbar-none flex gap-1 overflow-x-auto border-b border-zinc-200', className)}
+      onKeyDown={(e) => {
+        // WAI-ARIA tabs: arrow keys move between tabs, Home / End jump to the ends
+        const i = tabs.findIndex((t) => t.id === value);
+        const to =
+          e.key === 'ArrowRight' ? (i + 1) % tabs.length
+          : e.key === 'ArrowLeft' ? (i - 1 + tabs.length) % tabs.length
+          : e.key === 'Home' ? 0
+          : e.key === 'End' ? tabs.length - 1
+          : -1;
+        if (to < 0) return;
+        e.preventDefault();
+        onChange(tabs[to].id);
+        const btns = e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+        btns[to]?.focus();
+      }}
+    >
       {tabs.map((t) => {
         const active = t.id === value;
         return (
@@ -27,6 +45,7 @@ export function Tabs<T extends string>({
             role="tab"
             type="button"
             aria-selected={active}
+            tabIndex={active ? 0 : -1}
             onClick={() => onChange(t.id)}
             className={clsx(
               'relative flex min-h-[44px] items-center gap-2 whitespace-nowrap px-3 text-sm font-medium transition-colors',
@@ -37,7 +56,7 @@ export function Tabs<T extends string>({
             {t.count !== undefined && (
               <span
                 className={clsx(
-                  'rounded-full px-1.5 py-0.5 text-[11px] leading-none',
+                  'rounded-full px-1.5 py-0.5 text-xs leading-none',
                   active ? 'bg-brand-600 text-white' : 'bg-zinc-100 text-zinc-600',
                 )}
               >

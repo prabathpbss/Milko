@@ -165,7 +165,7 @@ export default function MobileCollect() {
           <button
             key={t.label}
             type="button"
-            className={clsx('flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium', t.active ? 'text-brand-700' : 'text-zinc-500')}
+            className={clsx('flex h-16 flex-col items-center justify-center gap-1 text-xs font-medium', t.active ? 'text-brand-700' : 'text-zinc-500')}
           >
             <t.icon className="h-5 w-5" />
             {t.label}

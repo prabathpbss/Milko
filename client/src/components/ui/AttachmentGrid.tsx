@@ -109,7 +109,7 @@ export default function AttachmentGrid({
               <p className="truncate text-xs font-medium" title={a.name}>
                 {a.name}
               </p>
-              <p className="text-[11px] text-zinc-500">{fmtSize(a.size)}</p>
+              <p className="text-xs text-zinc-500">{fmtSize(a.size)}</p>
             </div>
             <button
               type="button"

@@ -78,7 +78,7 @@ export default function Reports() {
           <nav aria-label="Reports" className="p-2">
             {catalog.map((g) => (
               <div key={g.group} className="mb-2">
-                <p className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{g.group}</p>
+                <p className="px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">{g.group}</p>
                 {g.items.map((r) => (
                   <button
                     key={r}

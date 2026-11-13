@@ -41,7 +41,7 @@ export function DataTable<T>({
                 key={c.key}
                 scope="col"
                 className={clsx(
-                  'whitespace-nowrap px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-500',
+                  'whitespace-nowrap px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-zinc-500',
                   alignCls[c.align ?? 'left'],
                 )}
               >
@@ -64,9 +64,24 @@ export function DataTable<T>({
                 <tr
                   key={key}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  // Clickable rows are reachable and operable from the keyboard too
+                  tabIndex={onRowClick ? 0 : undefined}
+                  onKeyDown={
+                    onRowClick
+                      ? (e) => {
+                          if (e.target !== e.currentTarget) return;
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            onRowClick(row);
+                          }
+                        }
+                      : undefined
+                  }
+                  aria-current={selectedKey === key ? 'true' : undefined}
                   className={clsx(
                     'transition-colors',
-                    onRowClick && 'cursor-pointer',
+                    onRowClick &&
+                      'cursor-pointer focus-visible:bg-zinc-50 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600 focus-visible:ring-0 focus-visible:ring-offset-0',
                     selectedKey === key ? 'bg-brand-50/60' : 'hover:bg-zinc-50',
                   )}
                 >

@@ -1,7 +1,9 @@
+import { Suspense } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import clsx from 'clsx';
 import { ArrowLeft } from 'lucide-react';
 import ThemeToggle from '@/components/ui/ThemeToggle';
+import PageSkeleton from '@/components/ui/PageSkeleton';
 
 const apps = [
   { to: '/mobile/collect', label: 'Field collection' },
@@ -34,7 +36,9 @@ export default function MobileShell() {
         </div>
       </div>
       <div className="mx-auto flex min-h-screen w-full max-w-[420px] flex-col overflow-hidden bg-zinc-50 sm:min-h-0 sm:h-[860px] sm:rounded-[2rem] sm:border-[10px] sm:border-zinc-900 sm:shadow-2xl">
-        <Outlet />
+        <Suspense fallback={<div className="p-4"><PageSkeleton compact /></div>}>
+          <Outlet />
+        </Suspense>
       </div>
     </div>
   );

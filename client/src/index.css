@@ -5,15 +5,25 @@
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    scrollbar-color: #d4d4d8 transparent;
+  }
+  html.dark {
+    scrollbar-color: #3f3f46 transparent;
   }
   body {
     @apply bg-zinc-50 font-sans text-zinc-900 antialiased;
+    caret-color: theme('colors.brand.600');
+  }
+  ::selection {
+    background-color: rgb(215 25 32 / 0.18);
   }
   h1, h2, h3 {
     text-wrap: balance;
   }
+  /* Solid, offset focus ring: visible on white, on brand-red buttons and in dark mode (>= 3:1) */
   :focus-visible {
-    @apply outline-none ring-2 ring-brand-500/40 ring-offset-1 dark:ring-offset-zinc-900;
+    @apply outline-none ring-2 ring-brand-600 ring-offset-2 ring-offset-white dark:ring-brand-400 dark:ring-offset-zinc-950;
   }
 }
 
@@ -44,8 +54,8 @@
     @apply rounded-xl border border-zinc-200 bg-white shadow-card dark:border-zinc-800 dark:bg-zinc-900;
   }
   .input {
-    @apply h-10 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-900 shadow-sm outline-none transition placeholder:text-zinc-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-zinc-50 disabled:text-zinc-500
-      dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-500;
+    @apply h-10 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-900 shadow-sm outline-none transition-[border-color,box-shadow] placeholder:text-zinc-500 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus-visible:ring-offset-0 disabled:bg-zinc-50 disabled:text-zinc-500
+      dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-400 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-500;
   }
   textarea.input {
     @apply h-auto py-2;
@@ -151,9 +161,24 @@ html.dark body { background-color: #09090b; color: #f4f4f5; }
   }
 }
 
+/* Touch devices (field staff on phones / tablets): bigger hit areas,
+   16px inputs so iOS does not zoom on focus. Desktop density is unchanged. */
+@media (pointer: coarse) {
+  .btn, .input { min-height: 2.75rem; }
+  .btn-icon { min-width: 2.75rem; }
+  .btn-sm, .chip { min-height: 2.5rem; }
+  .input { font-size: 16px; }
+}
+
+/* Reduced motion: state changes stay instant and visible; loading spinners keep turning
+   (they carry state), everything decorative stops. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+  *:not(.animate-spin), *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

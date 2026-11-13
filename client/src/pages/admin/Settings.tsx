@@ -173,7 +173,7 @@ export default function Settings() {
                     <div key={s.level} className="flex items-center gap-3">
                       {i > 0 && <ArrowRight className="h-4 w-4 text-zinc-400" />}
                       <div className="min-w-[180px] rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">{s.level}</p>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{s.level}</p>
                         <p className="text-sm font-semibold">{s.who}</p>
                         <p className="text-xs text-zinc-500">{s.when}</p>
                         <button className="mt-2 inline-flex items-center gap-1 text-xs text-red-700 hover:underline" onClick={() => toast('Level removed', 'info')}>

@@ -1,26 +1,30 @@
+import { lazy } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import AppLayout from '@/components/layout/AppLayout';
 import MobileShell from '@/components/layout/MobileShell';
 import Login from '@/pages/Login';
-import Dashboard from '@/pages/Dashboard';
-import Farmers from '@/pages/farmers/Farmers';
-import FarmerProfile from '@/pages/farmers/FarmerProfile';
-import Onboarding from '@/pages/farmers/Onboarding';
-import Contracts from '@/pages/farmers/Contracts';
-import Collection from '@/pages/collection/Collection';
-import Logistics from '@/pages/collection/Logistics';
-import Quality from '@/pages/collection/Quality';
-import Payments from '@/pages/finance/Payments';
-import Approvals from '@/pages/finance/Approvals';
-import Reports from '@/pages/finance/Reports';
-import ErpConnectors from '@/pages/admin/ErpConnectors';
-import ErpSync from '@/pages/admin/ErpSync';
-import UsersRoles from '@/pages/admin/UsersRoles';
-import Settings from '@/pages/admin/Settings';
-import MobileCollect from '@/pages/mobile/MobileCollect';
-import MobileDriver from '@/pages/mobile/MobileDriver';
-import MobileFarmer from '@/pages/mobile/MobileFarmer';
+
+// Screens load on demand (code-split) so the first download stays small.
+// The layouts wrap <Outlet /> in <Suspense> so the shell stays visible while a screen loads.
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const Farmers = lazy(() => import('@/pages/farmers/Farmers'));
+const FarmerProfile = lazy(() => import('@/pages/farmers/FarmerProfile'));
+const Onboarding = lazy(() => import('@/pages/farmers/Onboarding'));
+const Contracts = lazy(() => import('@/pages/farmers/Contracts'));
+const Collection = lazy(() => import('@/pages/collection/Collection'));
+const Logistics = lazy(() => import('@/pages/collection/Logistics'));
+const Quality = lazy(() => import('@/pages/collection/Quality'));
+const Payments = lazy(() => import('@/pages/finance/Payments'));
+const Approvals = lazy(() => import('@/pages/finance/Approvals'));
+const Reports = lazy(() => import('@/pages/finance/Reports'));
+const ErpConnectors = lazy(() => import('@/pages/admin/ErpConnectors'));
+const ErpSync = lazy(() => import('@/pages/admin/ErpSync'));
+const UsersRoles = lazy(() => import('@/pages/admin/UsersRoles'));
+const Settings = lazy(() => import('@/pages/admin/Settings'));
+const MobileCollect = lazy(() => import('@/pages/mobile/MobileCollect'));
+const MobileDriver = lazy(() => import('@/pages/mobile/MobileDriver'));
+const MobileFarmer = lazy(() => import('@/pages/mobile/MobileFarmer'));
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { user } = useAuth();

@@ -19,7 +19,9 @@ export function Field({
       <span className="label">{label}</span>
       {children}
       {error ? (
-        <span className="text-xs text-red-600">{error}</span>
+        <span className="text-xs text-red-600" role="alert" data-field-error>
+          {error}
+        </span>
       ) : hint ? (
         <span className="text-xs text-zinc-500">{hint}</span>
       ) : null}

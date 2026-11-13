@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { Bell, ChevronDown, LogOut, Menu, Search, UserCircle2, X } from 'lucide-react';
@@ -9,6 +9,7 @@ import { useClickOutside } from '@/hooks/useClickOutside';
 import { notifications } from '@/data/mock';
 import { Avatar } from '@/components/ui/misc';
 import ThemeToggle from '@/components/ui/ThemeToggle';
+import PageSkeleton from '@/components/ui/PageSkeleton';
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
@@ -19,7 +20,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         className="flex h-16 shrink-0 items-center gap-3 border-b border-zinc-100 px-5"
       >
         <img src={logo} alt="MILCO" className="h-10 w-auto rounded-md bg-[#fff] p-1" />
-        <span className="text-[11px] font-medium leading-tight text-zinc-500">
+        <span className="text-xs font-medium leading-tight text-zinc-500">
           Farmer &amp; Milk
           <br />
           Collection
@@ -28,7 +29,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Main">
         {navGroups.map((g) => (
           <div key={g.label} className="mb-5">
-            <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{g.label}</p>
+            <p className="px-3 pb-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-500">{g.label}</p>
             <ul className="space-y-0.5">
               {g.items.map((item) => (
                 <li key={item.to}>
@@ -66,7 +67,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           </div>
         ))}
       </nav>
-      <div className="border-t border-zinc-100 px-5 py-3 text-[11px] text-zinc-500">MILCO FMS v1.0 · © 2026</div>
+      <div className="border-t border-zinc-100 px-5 py-3 text-xs text-zinc-500">MILCO FMS v1.0 · © 2026</div>
     </div>
   );
 }
@@ -175,13 +176,30 @@ export default function AppLayout() {
   const [drawer, setDrawer] = useState(false);
   const location = useLocation();
 
+  const menuBtnRef = useRef<HTMLButtonElement>(null);
+  const drawerCloseRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => setDrawer(false), [location.pathname]);
   useEffect(() => {
     document.body.style.overflow = drawer ? 'hidden' : '';
+    if (!drawer) return;
+    drawerCloseRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setDrawer(false);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      menuBtnRef.current?.focus();
+    };
   }, [drawer]);
 
   return (
     <div className="min-h-screen">
+      <a
+        href="#main"
+        className="sr-only z-[60] rounded-lg bg-white px-4 py-2 text-sm font-medium shadow-lg focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+      >
+        Skip to content
+      </a>
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-zinc-200 bg-white lg:block">
         <SidebarContent />
@@ -189,10 +207,11 @@ export default function AppLayout() {
 
       {/* Mobile drawer */}
       {drawer && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-zinc-900/40" onClick={() => setDrawer(false)} aria-hidden />
-          <aside className="absolute inset-y-0 left-0 w-[min(288px,85vw)] bg-white shadow-xl">
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Main menu">
+          <div className="absolute inset-0 bg-zinc-950/50" onClick={() => setDrawer(false)} aria-hidden />
+          <aside className="absolute inset-y-0 left-0 w-[min(288px,85vw)] overscroll-contain bg-white pb-[env(safe-area-inset-bottom)] shadow-xl">
             <button
+              ref={drawerCloseRef}
               type="button"
               onClick={() => setDrawer(false)}
               className="btn btn-ghost btn-icon absolute right-2 top-3"
@@ -209,10 +228,12 @@ export default function AppLayout() {
         <header className="sticky top-0 z-20 border-b border-zinc-200 bg-white/90 backdrop-blur">
           <div className="flex h-16 items-center gap-2 px-4 sm:px-6 lg:px-8">
             <button
+              ref={menuBtnRef}
               type="button"
               className="btn btn-ghost btn-icon -ml-2 lg:hidden"
               onClick={() => setDrawer(true)}
               aria-label="Open menu"
+              aria-expanded={drawer}
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -236,8 +257,10 @@ export default function AppLayout() {
             </div>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-[1480px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-          <Outlet />
+        <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1480px] px-4 py-6 outline-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:px-6 lg:px-8 lg:py-8">
+          <Suspense fallback={<PageSkeleton />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

@@ -160,7 +160,7 @@ export default function Logistics() {
               columns={[
                 { key: 'plate', header: 'Tanker', render: (t) => <span className="num font-medium">{t.plate}</span> },
                 { key: 'cap', header: 'Capacity', align: 'right', mono: true, render: (t) => `${num(t.capacity)} L` },
-                { key: 'driver', header: 'Driver', render: (t) => t.driver || <span className="text-zinc-400">Not assigned</span> },
+                { key: 'driver', header: 'Driver', render: (t) => t.driver || <span className="text-zinc-500">Not assigned</span> },
                 { key: 'route', header: 'Route', mono: true },
                 { key: 'stops', header: 'Stops', align: 'right', mono: true, render: (t) => `${t.stops.filter((s) => s.status === 'Done').length} / ${t.stops.length}` },
                 { key: 'dep', header: 'Departed', mono: true, render: (t) => t.departed },
