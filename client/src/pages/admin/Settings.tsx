@@ -7,30 +7,21 @@ import { DataTable } from '@/components/ui/DataTable';
 import { Badge } from '@/components/ui/Badge';
 import { Field, FormGrid } from '@/components/ui/Field';
 import { Toggle } from '@/components/ui/misc';
-import { incentiveSchemes, regions, centers } from '@/data/mock';
-import { categoryPremium, qualityLimits } from '@/lib/pricing';
+import { incentiveSchemes } from '@/data/mock';
+import { qualityLimits } from '@/lib/pricing';
 import { compact, num } from '@/lib/format';
 import { useToast } from '@/context/ToastContext';
 
 const sections = [
-  'Farmer categories',
   'Incentive schemes',
   'Deduction types',
   'Approval workflows',
   'Notifications',
   'Quality limits',
-  'Regions & centers',
   'Payment periods & bank',
   'Company',
 ] as const;
 type Section = (typeof sections)[number];
-
-const categories = [
-  { name: 'Platinum', rule: '≥ 150 L/day, score ≥ 92, no rejections', advance: 100000, farmers: 412 },
-  { name: 'Gold', rule: '≥ 60 L/day, score ≥ 85', advance: 50000, farmers: 2940 },
-  { name: 'Silver', rule: '≥ 25 L/day, score ≥ 75', advance: 25000, farmers: 6118 },
-  { name: 'Standard', rule: 'All other active farmers', advance: 10000, farmers: 8042 },
-] as const;
 
 const deductionTypes = [
   { name: 'Cattle feed (on credit)', erpItem: 'FD-*', maxPct: 40, periods: 4 },
@@ -71,7 +62,7 @@ const notificationRows = [
 
 export default function Settings() {
   const toast = useToast();
-  const [section, setSection] = useState<Section>('Farmer categories');
+  const [section, setSection] = useState<Section>('Incentive schemes');
   const [workflow, setWorkflow] = useState('Payment run');
   const [notifs, setNotifs] = useState(notificationRows);
 
@@ -108,23 +99,6 @@ export default function Settings() {
         </Card>
 
         <div className="flex flex-col gap-6 xl:col-span-3">
-          {section === 'Farmer categories' && (
-            <Card>
-              <CardHeader title="Farmer categories" subtitle="Used for pricing premiums, advance limits and incentives. Reviewed quarterly." actions={<button className="btn btn-secondary btn-sm"><Plus className="h-3.5 w-3.5" /> Category</button>} />
-              <DataTable
-                rows={[...categories]}
-                rowKey={(c) => c.name}
-                columns={[
-                  { key: 'name', header: 'Category', render: (c) => <Badge tone="brand">{c.name}</Badge> },
-                  { key: 'rule', header: 'Rule to qualify (last 3 months)', className: 'whitespace-normal min-w-[220px]' },
-                  { key: 'prem', header: 'Premium Rs / L', align: 'right', mono: true, render: (c) => categoryPremium[c.name].toFixed(2) },
-                  { key: 'adv', header: 'Max advance', align: 'right', mono: true, render: (c) => `Rs ${num(c.advance)}` },
-                  { key: 'farmers', header: 'Farmers', align: 'right', mono: true, render: (c) => num(c.farmers) },
-                ]}
-              />
-            </Card>
-          )}
-
           {section === 'Incentive schemes' && (
             <Card>
               <CardHeader title="Incentive & bonus schemes" subtitle="Loyalty, performance and seasonal bonuses" actions={<button className="btn btn-secondary btn-sm"><Plus className="h-3.5 w-3.5" /> Scheme</button>} />
@@ -254,20 +228,6 @@ export default function Settings() {
                   <Field label="Retain samples for (days)"><input className="input num" defaultValue="3" /></Field>
                 </FormGrid>
               </CardBody>
-            </Card>
-          )}
-
-          {section === 'Regions & centers' && (
-            <Card>
-              <CardHeader title="Regions" subtitle={`${regions.length} regions shown · centers are managed in Logistics`} />
-              <DataTable
-                rows={regions.map((r) => ({ r, n: centers.filter((c) => c.region === r).length }))}
-                rowKey={(x) => x.r}
-                columns={[
-                  { key: 'r', header: 'Region', render: (x) => <span className="font-medium">{x.r}</span> },
-                  { key: 'n', header: 'Centers', align: 'right', mono: true },
-                ]}
-              />
             </Card>
           )}
 

@@ -11,6 +11,7 @@ import { KeyValue } from '@/components/ui/misc';
 import { centers, routes } from '@/data/mock';
 import { useToast } from '@/context/ToastContext';
 import { activeTemplateNames } from '@/data/priceTemplates';
+import { useCategoryNames } from '@/data/masters';
 
 const steps = ['Personal details', 'Farm & herd', 'Bank & payment', 'Contract & category', 'Documents', 'Review & submit'];
 
@@ -57,6 +58,7 @@ const docList = [
 export default function Onboarding() {
   const navigate = useNavigate();
   const toast = useToast();
+  const categories = useCategoryNames();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(initial);
   const [docs, setDocs] = useState<Record<string, string>>({ nic: 'NIC_Dilani.pdf', land: 'Lease_Yaya4.pdf' });
@@ -278,10 +280,9 @@ export default function Onboarding() {
                 </Field>
                 <Field label="Starting category" hint="Reviewed every quarter">
                   <select className="input" value={form.category} onChange={set('category')}>
-                    <option>Standard</option>
-                    <option>Silver</option>
-                    <option>Gold</option>
-                    <option>Platinum</option>
+                    {categories.map((c) => (
+                      <option key={c}>{c}</option>
+                    ))}
                   </select>
                 </Field>
                 <Field label="Valid from">

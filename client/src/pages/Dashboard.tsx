@@ -19,7 +19,8 @@ import { DataTable } from '@/components/ui/DataTable';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
 import FakeMap from '@/components/ui/FakeMap';
 import { Progress } from '@/components/ui/misc';
-import { alerts, approvals, centers, collectionTrend, regions, tankers, TODAY, type Center } from '@/data/mock';
+import { alerts, approvals, centers, collectionTrend, tankers, TODAY, type Center } from '@/data/mock';
+import { useRegionNames } from '@/data/masters';
 import { compact, num } from '@/lib/format';
 import { useAuth } from '@/context/AuthContext';
 import { useChartColors } from '@/lib/chartTheme';
@@ -41,6 +42,7 @@ const alertStyle = {
 export default function Dashboard() {
   const { user } = useAuth();
   const cc = useChartColors();
+  const regions = useRegionNames();
   const [region, setRegion] = useState('All regions');
   const [shift, setShift] = useState('Both shifts');
 

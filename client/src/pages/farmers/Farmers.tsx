@@ -7,7 +7,8 @@ import { DataTable } from '@/components/ui/DataTable';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { FilterChips } from '@/components/ui/Tabs';
 import { Avatar } from '@/components/ui/misc';
-import { centers, farmers, regions, type Farmer } from '@/data/mock';
+import { centers, farmers, type Farmer } from '@/data/mock';
+import { useCategoryNames, useRegionNames } from '@/data/masters';
 import { num } from '@/lib/format';
 import { useToast } from '@/context/ToastContext';
 
@@ -23,6 +24,8 @@ function scoreTone(score: number) {
 export default function Farmers() {
   const navigate = useNavigate();
   const toast = useToast();
+  const regions = useRegionNames();
+  const categories = useCategoryNames();
   const [status, setStatus] = useState<StatusFilter>('all');
   const [q, setQ] = useState('');
   const [region, setRegion] = useState('');
@@ -120,7 +123,7 @@ export default function Farmers() {
           </select>
           <select className="input" aria-label="Category" value={category} onChange={(e) => { setCategory(e.target.value); setPage(0); }}>
             <option value="">All categories</option>
-            {['Platinum', 'Gold', 'Silver', 'Standard'].map((c) => <option key={c}>{c}</option>)}
+            {categories.map((c) => <option key={c}>{c}</option>)}
           </select>
           <select className="input" aria-label="Contract" value={contract} onChange={(e) => { setContract(e.target.value); setPage(0); }}>
             <option value="">Any contract</option>

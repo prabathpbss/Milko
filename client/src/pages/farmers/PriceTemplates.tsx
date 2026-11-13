@@ -9,7 +9,7 @@ import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { FilterChips } from '@/components/ui/Tabs';
 import { Field, FormGrid } from '@/components/ui/Field';
 import { EmptyState } from '@/components/ui/misc';
-import { regions } from '@/data/mock';
+import { categoryStore, useCategoryNames, useRegionNames } from '@/data/masters';
 import {
   FAT_BANDS,
   SNF_BANDS,
@@ -23,7 +23,6 @@ import { num } from '@/lib/format';
 import { useToast } from '@/context/ToastContext';
 
 type StatusFilter = 'all' | TemplateStatus;
-const CATEGORIES: TemplateCategory[] = ['Platinum', 'Gold', 'Silver', 'Standard', 'Society'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const fmtDate = (iso: string) => {
   const [y, m, d] = iso.split('-');
@@ -116,6 +115,7 @@ function monotonicWarnings(m: string[][]) {
 
 export default function PriceTemplates() {
   const toast = useToast();
+  const regions = useRegionNames();
   const [templates, setTemplates] = useState<PriceTemplate[]>(seed);
   const [selId, setSelId] = useState<string>(seed[0].id);
   const [status, setStatus] = useState<StatusFilter>('all');
@@ -304,6 +304,9 @@ function TemplateEditor({
   onClone: () => void;
 }) {
   const editable = t.status === 'Draft';
+  const regions = useRegionNames();
+  // Template categories = active farmer categories + bulk pricing for dairy societies
+  const categories = [...useCategoryNames(), 'Society'];
   const [d, setD] = useState<Draft>(() => toDraft(t));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [adjust, setAdjust] = useState('1');
@@ -419,15 +422,23 @@ function TemplateEditor({
                     <input className="input" value={d.name} onChange={(e) => set('name', e.target.value)} />
                   </Field>
                   <Field label="Category" hint="Sets the default category premium">
-                    <select className="input" value={d.category} onChange={(e) => set('category', e.target.value as TemplateCategory)}>
-                      {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                    <select
+                      className="input"
+                      value={d.category}
+                      onChange={(e) => {
+                        const cat = e.target.value;
+                        const def = categoryStore.get().find((c) => c.name === cat)?.defaultPremium;
+                        setD((x) => ({ ...x, category: cat, premium: def !== undefined ? String(def) : x.premium }));
+                      }}
+                    >
+                      {(categories.includes(d.category) ? categories : [d.category, ...categories]).map((c) => <option key={c}>{c}</option>)}
                     </select>
                   </Field>
                   <Field label="Region">
                     <select className="input" value={d.region} onChange={(e) => set('region', e.target.value)}>
                       <option value="">Choose a region…</option>
                       <option>All regions</option>
-                      {regions.map((r) => <option key={r}>{r}</option>)}
+                      {(d.region && d.region !== 'All regions' && !regions.includes(d.region) ? [d.region, ...regions] : regions).map((r) => <option key={r}>{r}</option>)}
                     </select>
                   </Field>
                   <Field label="Valid from" error={errors.validFrom}>

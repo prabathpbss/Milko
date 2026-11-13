@@ -7,7 +7,8 @@
 import { fatBands, snfBands } from '@/lib/pricing';
 
 export type TemplateStatus = 'Draft' | 'Pending approval' | 'Active' | 'Expired';
-export type TemplateCategory = 'Platinum' | 'Gold' | 'Silver' | 'Standard' | 'Society';
+/** A farmer category name from the category master, or 'Society' for bulk society pricing. */
+export type TemplateCategory = string;
 
 export interface PriceTemplate {
   id: string;

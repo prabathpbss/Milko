@@ -17,7 +17,8 @@ import PageHeader from '@/components/ui/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { DataTable } from '@/components/ui/DataTable';
 import { Badge } from '@/components/ui/Badge';
-import { centers, farmers, regions, type Farmer } from '@/data/mock';
+import { centers, farmers, type Farmer } from '@/data/mock';
+import { useCategoryNames, useRegionNames } from '@/data/masters';
 import { num } from '@/lib/format';
 import { useToast } from '@/context/ToastContext';
 import { useChartColors } from '@/lib/chartTheme';
@@ -32,6 +33,8 @@ const catalog = [
 export default function Reports() {
   const toast = useToast();
   const cc = useChartColors();
+  const regions = useRegionNames();
+  const categories = useCategoryNames();
   const [report, setReport] = useState(catalog[0].items[0]);
   const [region, setRegion] = useState('');
   const [period, setPeriod] = useState('Last 3 months');
@@ -117,10 +120,7 @@ export default function Reports() {
               </select>
               <select className="input" aria-label="Category">
                 <option>All categories</option>
-                <option>Platinum</option>
-                <option>Gold</option>
-                <option>Silver</option>
-                <option>Standard</option>
+                {categories.map((c) => <option key={c}>{c}</option>)}
               </select>
             </CardBody>
           </Card>

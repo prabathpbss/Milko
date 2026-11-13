@@ -1,10 +1,12 @@
 import type { LucideIcon } from 'lucide-react';
 import {
+  Award,
   BarChart3,
   CheckCircle2,
   FileSignature,
   KeyRound,
   LayoutDashboard,
+  Map,
   Milk,
   Navigation,
   PlugZap,
@@ -61,6 +63,13 @@ export const navGroups: NavGroup[] = [
       { to: '/payments', label: 'Payment runs', icon: Wallet },
       { to: '/approvals', label: 'Approvals', icon: CheckCircle2, badge: 7 },
       { to: '/reports', label: 'Reports', icon: BarChart3 },
+    ],
+  },
+  {
+    label: 'Masters',
+    items: [
+      { to: '/masters/regions', label: 'Regions', icon: Map },
+      { to: '/masters/categories', label: 'Farmer categories', icon: Award },
     ],
   },
   {
