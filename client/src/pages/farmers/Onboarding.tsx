@@ -8,7 +8,8 @@ import Stepper from '@/components/ui/Stepper';
 import { StatusBadge } from '@/components/ui/Badge';
 import AttachmentGrid, { type Attachment } from '@/components/ui/AttachmentGrid';
 import { KeyValue } from '@/components/ui/misc';
-import { centers, routes } from '@/data/mock';
+import { centers } from '@/data/mock';
+import { useActiveRoutes } from '@/data/masters';
 import { useToast } from '@/context/ToastContext';
 import { activeTemplateNames } from '@/data/priceTemplates';
 import { useCategoryNames } from '@/data/masters';
@@ -113,6 +114,7 @@ export default function Onboarding() {
   };
 
   const docsDone = docList.filter((d) => docs[d.key]).length;
+  const routes = useActiveRoutes();
   const centerRoutes = routes.filter((r) => r.centerId === form.center);
 
   return (
@@ -180,8 +182,8 @@ export default function Onboarding() {
                   <Field label={t('Collection route')}>
                     <select className="input" value={form.route} onChange={set('route')}>
                       {(centerRoutes.length ? centerRoutes : routes).map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.id} · {r.name}
+                        <option key={r.code} value={r.code}>
+                          {r.code} · {r.name}
                         </option>
                       ))}
                     </select>

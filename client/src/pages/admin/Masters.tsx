@@ -12,6 +12,7 @@ import {
   regionStore,
   useCategoryMaster,
   useRegionMaster,
+  useRouteMaster,
   type CategoryMaster,
   type MasterStatus,
   type RegionMaster,
@@ -23,8 +24,9 @@ import { useLang } from '@/i18n/LanguageContext';
 import { FormActions, MasterLayout, SearchBar, focusFirstError } from './masters/shared';
 import Roles from './masters/RoleMaster';
 import Scopes from './masters/ScopeMaster';
+import Routes from './masters/RouteMaster';
 
-type TabId = 'regions' | 'categories' | 'roles' | 'scopes';
+type TabId = 'regions' | 'categories' | 'routes' | 'roles' | 'scopes';
 type T = ReturnType<typeof useLang>['t'];
 
 /** Strings are English keys; translated at render with t(). */
@@ -38,6 +40,11 @@ const META: Record<TabId, { crumb: string; title: string; description: string }>
     crumb: 'Farmer categories',
     title: 'Farmer category master',
     description: 'Categories rank farmers by volume, quality and reliability. They set the default premium and advance limit.',
+  },
+  routes: {
+    crumb: 'Routes',
+    title: 'Route master',
+    description: 'Collection routes: pickup points in driving order, the plant they deliver to, schedule and default tanker. Used by the driver form, tracking and access scopes.',
   },
   roles: {
     crumb: 'Roles',
@@ -57,6 +64,7 @@ export default function Masters() {
   const { t } = useLang();
   const regions = useRegionMaster();
   const categories = useCategoryMaster();
+  const routeRows = useRouteMaster();
   const roles = useRoleMaster();
   const scopes = useScopeMaster();
   const active: TabId = tab in META ? (tab as TabId) : 'regions';
@@ -72,12 +80,14 @@ export default function Masters() {
         tabs={[
           { id: 'regions', label: t('Regions'), count: regions.length },
           { id: 'categories', label: t('Farmer categories'), count: categories.length },
+          { id: 'routes', label: t('Routes'), count: routeRows.length },
           { id: 'roles', label: t('Roles'), count: roles.length },
           { id: 'scopes', label: t('Access scopes'), count: scopes.length },
         ]}
       />
       {active === 'regions' && <Regions rows={regions} />}
       {active === 'categories' && <Categories rows={categories} />}
+      {active === 'routes' && <Routes rows={routeRows} />}
       {active === 'roles' && <Roles rows={roles} />}
       {active === 'scopes' && <Scopes rows={scopes} />}
     </>

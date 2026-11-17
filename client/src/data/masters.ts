@@ -69,3 +69,49 @@ export function useCategoryNames() {
     [all],
   );
 }
+
+/* ───────────── Collection routes ───────────── */
+
+export type RouteShift = 'Morning' | 'Evening' | 'Both';
+export const ROUTE_SHIFTS: RouteShift[] = ['Morning', 'Evening', 'Both'];
+
+/** Plants a route can deliver to. */
+export const PLANTS = ['Polonnaruwa plant', 'Kurunegala plant', 'Ambewela plant', 'Anuradhapura plant', 'Badulla plant', 'Ampara plant'];
+
+/** A fixed tanker run: FMS pickup points in order, ending at a plant. Maps to the future Prisma model Route. */
+export interface RouteMaster {
+  code: string;
+  name: string;
+  centerId: string;
+  shift: RouteShift;
+  /** HH:MM */
+  departure: string;
+  /** Planned arrival at the plant, HH:MM */
+  arriveBy: string;
+  /** Pickup points in driving order */
+  stops: string[];
+  destination: string;
+  distanceKm: number;
+  /** Default tanker plate; '' = not assigned */
+  tanker: string;
+  farmers: number;
+  status: MasterStatus;
+}
+
+export const routeStore = createStore<RouteMaster[]>([
+  { code: 'R-03', name: 'Kurunegala North', centerId: 'CC-KUR', shift: 'Morning', departure: '05:00', arriveBy: '08:40', stops: ['Wariyapola FMS', 'Mawathagama FMS', 'Kurunegala CC'], destination: 'Kurunegala plant', distanceKm: 64, tanker: 'NP-LH 2290', farmers: 612, status: 'Active' },
+  { code: 'R-07', name: 'Yaya 1–6', centerId: 'CC-HNG', shift: 'Morning', departure: '05:10', arriveBy: '08:45', stops: ['Yaya 1 FMS', 'Yaya 3 FMS', 'Yaya 4 FMS', 'Hingurakgoda CC'], destination: 'Polonnaruwa plant', distanceKm: 48, tanker: 'NP-LK 4521', farmers: 845, status: 'Active' },
+  { code: 'R-11', name: 'Ambewela – Pattipola', centerId: 'CC-NUW', shift: 'Morning', departure: '05:30', arriveBy: '08:55', stops: ['Ambewela FMS', 'Pattipola FMS', 'Nuwara Eliya CC'], destination: 'Ambewela plant', distanceKm: 37, tanker: 'NC-KA 7713', farmers: 520, status: 'Active' },
+  { code: 'R-14', name: 'Anuradhapura West', centerId: 'CC-ANU', shift: 'Morning', departure: '05:30', arriveBy: '09:00', stops: ['Thambuttegama FMS', 'Galnewa FMS', 'Anuradhapura CC'], destination: 'Anuradhapura plant', distanceKm: 71, tanker: '', farmers: 704, status: 'Active' },
+  { code: 'R-18', name: 'Welimada – Badulla', centerId: 'CC-BAD', shift: 'Morning', departure: '05:40', arriveBy: '08:40', stops: ['Welimada FMS', 'Bandarawela FMS', 'Badulla CC'], destination: 'Badulla plant', distanceKm: 52, tanker: 'UP-LC 3390', farmers: 388, status: 'Active' },
+  { code: 'R-21', name: 'Uhana – Damana', centerId: 'CC-AMP', shift: 'Both', departure: '04:50', arriveBy: '08:30', stops: ['Uhana FMS', 'Damana FMS', 'Ampara CC'], destination: 'Ampara plant', distanceKm: 58, tanker: 'EP-LJ 0418', farmers: 541, status: 'Active' },
+  { code: 'R-09', name: 'Mawathagama Evening', centerId: 'CC-KUR', shift: 'Evening', departure: '16:30', arriveBy: '19:30', stops: ['Mawathagama FMS', 'Kurunegala CC'], destination: 'Kurunegala plant', distanceKm: 22, tanker: '', farmers: 0, status: 'Inactive' },
+]);
+
+export const useRouteMaster = () => useStore(routeStore);
+
+/** Active routes, for dropdowns. */
+export function useActiveRoutes() {
+  const all = useRouteMaster();
+  return useMemo(() => all.filter((r) => r.status === 'Active'), [all]);
+}

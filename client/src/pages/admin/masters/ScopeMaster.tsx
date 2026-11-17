@@ -6,8 +6,8 @@ import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { Field } from '@/components/ui/Field';
 import { FilterChips } from '@/components/ui/Tabs';
 import { SCOPE_LEVELS, scopeStore, userStore, useRoleMaster, type ScopeLevel, type ScopeMaster } from '@/data/access';
-import { useRegionNames, type MasterStatus } from '@/data/masters';
-import { centers, routes } from '@/data/mock';
+import { routeStore, useActiveRoutes, useRegionNames, useRouteMaster, type MasterStatus } from '@/data/masters';
+import { centers } from '@/data/mock';
 import { num } from '@/lib/format';
 import { useToast } from '@/context/ToastContext';
 import { useLang } from '@/i18n/LanguageContext';
@@ -28,8 +28,8 @@ const CODE_PREFIX: Record<ScopeLevel, string> = { Company: '', Region: 'RG-', Ce
 
 const centerName = (id: string) => centers.find((c) => c.id === id)?.name ?? id;
 const routeName = (id: string) => {
-  const r = routes.find((x) => x.id === id);
-  return r ? `${r.id} ${r.name}` : id;
+  const r = routeStore.get().find((x) => x.code === id);
+  return r ? `${r.code} ${r.name}` : id;
 };
 
 /** Plain-words list of what a scope covers. */
@@ -56,6 +56,8 @@ export default function Scopes({ rows }: { rows: ScopeMaster[] }) {
   const scopeName = (n: string) => (n === 'All regions' ? t(n) : n);
   const roles = useRoleMaster();
   const regionNames = useRegionNames();
+  const activeRoutes = useActiveRoutes();
+  useRouteMaster(); // re-render when a route is renamed
   const [q, setQ] = useState('');
   const [level, setLevel] = useState<LevelFilter>('All');
   const [selCode, setSelCode] = useState<string | null>(rows[0]?.code ?? null);
@@ -83,7 +85,7 @@ export default function Scopes({ rows }: { rows: ScopeMaster[] }) {
       : d.level === 'Center'
         ? centers.map((c) => ({ id: c.id, label: c.name, sub: c.region }))
         : d.level === 'Route'
-          ? routes.map((r) => ({ id: r.id, label: `${r.id} · ${r.name}`, sub: centerName(r.centerId) }))
+          ? [...activeRoutes, ...routeStore.get().filter((r) => r.status !== 'Active' && d.members.includes(r.code))].map((r) => ({ id: r.code, label: `${r.code} · ${r.name}`, sub: centerName(r.centerId) }))
           : [];
 
   const changeLevel = (l: ScopeLevel) => setD((x) => ({ ...x, level: l, members: [] }));

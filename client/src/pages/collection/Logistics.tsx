@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { CheckCircle2, Circle, CircleDot, Phone, Plus, Thermometer } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
@@ -9,7 +10,8 @@ import { Tabs } from '@/components/ui/Tabs';
 import FakeMap from '@/components/ui/FakeMap';
 import { Modal, Progress } from '@/components/ui/misc';
 import { Field } from '@/components/ui/Field';
-import { centers, routes, tankers as seed, type Center, type Tanker } from '@/data/mock';
+import { centers, tankers as seed, type Center, type Tanker } from '@/data/mock';
+import { useRouteMaster, type RouteMaster } from '@/data/masters';
 import { num } from '@/lib/format';
 import { useToast } from '@/context/ToastContext';
 import { useLang } from '@/i18n/LanguageContext';
@@ -21,6 +23,8 @@ const tone = (s: Tanker['status']) =>
 export default function Logistics() {
   const toast = useToast();
   const { t } = useLang();
+  const navigate = useNavigate();
+  const routes = useRouteMaster();
   const [tab, setTab] = useState<TabId>('tracking');
   const [tankers, setTankers] = useState(seed);
   const [selId, setSelId] = useState('TK-14');
@@ -39,7 +43,7 @@ export default function Logistics() {
             <button className="btn btn-secondary" onClick={() => toast(t('New center form opened'), 'info')}>
               <Plus className="h-4 w-4" /> {t('Center')}
             </button>
-            <button className="btn btn-secondary" onClick={() => toast(t('New route form opened'), 'info')}>
+            <button className="btn btn-secondary" onClick={() => navigate('/masters/routes', { state: { newRoute: true } })}>
               <Plus className="h-4 w-4" /> {t('Route')}
             </button>
             <button className="btn btn-primary" onClick={() => toast(t("Tomorrow's tanker plan generated for {n} tankers", { n: 31 }))}>
@@ -188,17 +192,19 @@ export default function Logistics() {
       {tab === 'routes' && (
         <Card>
           <CardHeader title={t('Collection routes')} subtitle={t('Each route is a fixed sequence of FMS pickup points ending at a center or plant')} />
-          <DataTable
+          <DataTable<RouteMaster>
             rows={routes}
-            rowKey={(r) => r.id}
+            onRowClick={(r) => navigate('/masters/routes', { state: { code: r.code } })}
+            rowKey={(r) => r.code}
             columns={[
-              { key: 'id', header: t('Route'), mono: true },
+              { key: 'code', header: t('Route'), mono: true },
               { key: 'name', header: t('Name'), render: (r) => <span className="font-medium">{r.name}</span> },
               { key: 'center', header: t('Center'), render: (r) => centers.find((c) => c.id === r.centerId)?.name },
-              { key: 'stops', header: t('Stops'), align: 'right', mono: true },
+              { key: 'stops', header: t('Stops'), align: 'right', mono: true, render: (r) => r.stops.length },
+              { key: 'status', header: t('Status'), render: (r) => <StatusBadge status={r.status} /> },
               { key: 'km', header: t('Distance'), align: 'right', mono: true, render: (r) => `${r.distanceKm} km` },
               { key: 'farmers', header: t('Farmers'), align: 'right', mono: true, render: (r) => num(r.farmers) },
-              { key: 'tanker', header: t('Tanker today'), mono: true },
+              { key: 'tanker', header: t('Tanker today'), mono: true, render: (r) => r.tanker || '—' },
             ]}
           />
         </Card>
