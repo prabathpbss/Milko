@@ -11,6 +11,8 @@ import {
   categoryStore,
   regionStore,
   useCategoryMaster,
+  useCenterMaster,
+  usePlantMaster,
   useRegionMaster,
   useRouteMaster,
   type CategoryMaster,
@@ -25,8 +27,10 @@ import { FormActions, MasterLayout, SearchBar, focusFirstError } from './masters
 import Roles from './masters/RoleMaster';
 import Scopes from './masters/ScopeMaster';
 import Routes from './masters/RouteMaster';
+import Centers from './masters/CenterMaster';
+import Plants from './masters/PlantMaster';
 
-type TabId = 'regions' | 'categories' | 'routes' | 'roles' | 'scopes';
+type TabId = 'regions' | 'categories' | 'plants' | 'centers' | 'routes' | 'roles' | 'scopes';
 type T = ReturnType<typeof useLang>['t'];
 
 /** Strings are English keys; translated at render with t(). */
@@ -40,6 +44,16 @@ const META: Record<TabId, { crumb: string; title: string; description: string }>
     crumb: 'Farmer categories',
     title: 'Farmer category master',
     description: 'Categories rank farmers by volume, quality and reliability. They set the default premium and advance limit.',
+  },
+  plants: {
+    crumb: 'Plants',
+    title: 'Plant master',
+    description: 'Processing plants that receive milk: location, daily intake capacity and reception hours. Routes and centers deliver to a plant.',
+  },
+  centers: {
+    crumb: 'Collection centers',
+    title: 'Collection center master',
+    description: 'Chilling centers and the FMS pickup points that feed them: region, capacity, hours and default plant. Used by routes, farmer onboarding and access scopes.',
   },
   routes: {
     crumb: 'Routes',
@@ -64,6 +78,8 @@ export default function Masters() {
   const { t } = useLang();
   const regions = useRegionMaster();
   const categories = useCategoryMaster();
+  const plantRows = usePlantMaster();
+  const centerRows = useCenterMaster();
   const routeRows = useRouteMaster();
   const roles = useRoleMaster();
   const scopes = useScopeMaster();
@@ -80,6 +96,8 @@ export default function Masters() {
         tabs={[
           { id: 'regions', label: t('Regions'), count: regions.length },
           { id: 'categories', label: t('Farmer categories'), count: categories.length },
+          { id: 'plants', label: t('Plants'), count: plantRows.length },
+          { id: 'centers', label: t('Collection centers'), count: centerRows.length },
           { id: 'routes', label: t('Routes'), count: routeRows.length },
           { id: 'roles', label: t('Roles'), count: roles.length },
           { id: 'scopes', label: t('Access scopes'), count: scopes.length },
@@ -87,6 +105,8 @@ export default function Masters() {
       />
       {active === 'regions' && <Regions rows={regions} />}
       {active === 'categories' && <Categories rows={categories} />}
+      {active === 'plants' && <Plants rows={plantRows} />}
+      {active === 'centers' && <Centers rows={centerRows} />}
       {active === 'routes' && <Routes rows={routeRows} />}
       {active === 'roles' && <Roles rows={roles} />}
       {active === 'scopes' && <Scopes rows={scopes} />}

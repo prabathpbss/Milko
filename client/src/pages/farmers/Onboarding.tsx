@@ -8,8 +8,7 @@ import Stepper from '@/components/ui/Stepper';
 import { StatusBadge } from '@/components/ui/Badge';
 import AttachmentGrid, { type Attachment } from '@/components/ui/AttachmentGrid';
 import { KeyValue } from '@/components/ui/misc';
-import { centers } from '@/data/mock';
-import { useActiveRoutes } from '@/data/masters';
+import { centerName, useActiveCenters, useActiveRoutes } from '@/data/masters';
 import { useToast } from '@/context/ToastContext';
 import { activeTemplateNames } from '@/data/priceTemplates';
 import { useCategoryNames } from '@/data/masters';
@@ -115,6 +114,7 @@ export default function Onboarding() {
 
   const docsDone = docList.filter((d) => docs[d.key]).length;
   const routes = useActiveRoutes();
+  const activeCenters = useActiveCenters();
   const centerRoutes = routes.filter((r) => r.centerId === form.center);
 
   return (
@@ -172,8 +172,8 @@ export default function Onboarding() {
                 <FormGrid>
                   <Field label={t('Collection center')}>
                     <select className="input" value={form.center} onChange={set('center')}>
-                      {centers.map((c) => (
-                        <option key={c.id} value={c.id}>
+                      {activeCenters.map((c) => (
+                        <option key={c.code} value={c.code}>
                           {c.name}
                         </option>
                       ))}
@@ -324,7 +324,7 @@ export default function Onboarding() {
               <div className="grid gap-6 lg:grid-cols-2">
                 {[
                   { title: t('Personal'), items: [[t('Name'), form.fullName], ['NIC', form.nic], [t('Mobile'), form.mobile], [t('Language'), t(form.language)], [t('Address'), form.address]] },
-                  { title: t('Farm'), items: [[t('Center'), centers.find((c) => c.id === form.center)?.name ?? ''], [t('Route'), form.route], [t('Herd'), t('{cattle} cattle, {milking} milking', { cattle: form.cattle, milking: form.milking })], [t('Expected'), t('{n} L / day', { n: form.expected })], [t('Location'), form.farmAddress || '—'], [t('Attachments'), t('{n} file(s)', { n: attachments.length })]] },
+                  { title: t('Farm'), items: [[t('Center'), centerName(form.center)], [t('Route'), form.route], [t('Herd'), t('{cattle} cattle, {milking} milking', { cattle: form.cattle, milking: form.milking })], [t('Expected'), t('{n} L / day', { n: form.expected })], [t('Location'), form.farmAddress || '—'], [t('Attachments'), t('{n} file(s)', { n: attachments.length })]] },
                   { title: t('Bank'), items: [[t('Method'), t(form.payMethod)], [t('Bank'), `${form.bank}, ${form.branch}`], [t('Account'), form.account || '—'], [t('Holder'), form.accountName]] },
                   { title: t('Contract'), items: [[t('Template'), form.template], [t('Category'), t(form.category)], [t('Valid'), t('{from} to {to}', { from: form.validFrom, to: form.validTo })], [t('Documents'), t('{n} of {total}', { n: docsDone, total: docList.length })]] },
                 ].map((s) => (

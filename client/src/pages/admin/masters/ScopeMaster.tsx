@@ -6,8 +6,7 @@ import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { Field } from '@/components/ui/Field';
 import { FilterChips } from '@/components/ui/Tabs';
 import { SCOPE_LEVELS, scopeStore, userStore, useRoleMaster, type ScopeLevel, type ScopeMaster } from '@/data/access';
-import { routeStore, useActiveRoutes, useRegionNames, useRouteMaster, type MasterStatus } from '@/data/masters';
-import { centers } from '@/data/mock';
+import { centerName, centerStore, routeStore, useActiveCenters, useActiveRoutes, useRegionNames, useRouteMaster, type MasterStatus } from '@/data/masters';
 import { num } from '@/lib/format';
 import { useToast } from '@/context/ToastContext';
 import { useLang } from '@/i18n/LanguageContext';
@@ -26,7 +25,6 @@ const emptyScope: ScopeDraft = { code: '', name: '', level: 'Center', members: [
 const LEVEL_TONE: Record<ScopeLevel, 'brand' | 'info' | 'success' | 'neutral'> = { Company: 'brand', Region: 'info', Center: 'success', Route: 'neutral' };
 const CODE_PREFIX: Record<ScopeLevel, string> = { Company: '', Region: 'RG-', Center: 'CC-', Route: 'RT-' };
 
-const centerName = (id: string) => centers.find((c) => c.id === id)?.name ?? id;
 const routeName = (id: string) => {
   const r = routeStore.get().find((x) => x.code === id);
   return r ? `${r.code} ${r.name}` : id;
@@ -57,6 +55,7 @@ export default function Scopes({ rows }: { rows: ScopeMaster[] }) {
   const roles = useRoleMaster();
   const regionNames = useRegionNames();
   const activeRoutes = useActiveRoutes();
+  const activeCenters = useActiveCenters();
   useRouteMaster(); // re-render when a route is renamed
   const [q, setQ] = useState('');
   const [level, setLevel] = useState<LevelFilter>('All');
@@ -83,7 +82,7 @@ export default function Scopes({ rows }: { rows: ScopeMaster[] }) {
     d.level === 'Region'
       ? Array.from(new Set([...regionNames, ...d.members])).map((r) => ({ id: r, label: r }))
       : d.level === 'Center'
-        ? centers.map((c) => ({ id: c.id, label: c.name, sub: c.region }))
+        ? [...activeCenters, ...centerStore.get().filter((c) => c.status !== 'Active' && d.members.includes(c.code))].map((c) => ({ id: c.code, label: c.name, sub: c.region }))
         : d.level === 'Route'
           ? [...activeRoutes, ...routeStore.get().filter((r) => r.status !== 'Active' && d.members.includes(r.code))].map((r) => ({ id: r.code, label: `${r.code} · ${r.name}`, sub: centerName(r.centerId) }))
           : [];

@@ -6,9 +6,19 @@ import { DataTable } from '@/components/ui/DataTable';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { Field } from '@/components/ui/Field';
 import { FilterChips } from '@/components/ui/Tabs';
-import { PLANTS, ROUTE_SHIFTS, routeStore, type MasterStatus, type RouteMaster, type RouteShift } from '@/data/masters';
+import {
+  ROUTE_SHIFTS,
+  centerName,
+  plantName,
+  routeStore,
+  useCenterMaster,
+  usePlantMaster,
+  type MasterStatus,
+  type RouteMaster,
+  type RouteShift,
+} from '@/data/masters';
 import { scopeStore, useScopeMaster } from '@/data/access';
-import { centers, tankers } from '@/data/mock';
+import { tankers } from '@/data/mock';
 import { num } from '@/lib/format';
 import { useToast } from '@/context/ToastContext';
 import { useLang } from '@/i18n/LanguageContext';
@@ -37,7 +47,6 @@ const toDraft = (r: RouteMaster): RouteDraft => ({ ...r, stops: [...r.stops], di
 const ROUTE_CODE_RE = /^R-\d{2,3}$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const minutes = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3));
-const centerName = (id: string) => centers.find((c) => c.id === id)?.name ?? id;
 const shiftsOverlap = (a: RouteShift, b: RouteShift) => a === b || a === 'Both' || b === 'Both';
 
 type ShiftFilter = 'All' | RouteShift;
@@ -46,7 +55,9 @@ export default function Routes({ rows }: { rows: RouteMaster[] }) {
   const toast = useToast();
   const { t } = useLang();
   const scopes = useScopeMaster();
-  const nav = useLocation().state as { newRoute?: boolean; code?: string } | null;
+  const allCenters = useCenterMaster();
+  const allPlants = usePlantMaster();
+  const nav =useLocation().state as { newRoute?: boolean; code?: string } | null;
   const [q, setQ] = useState('');
   const [shift, setShift] = useState<ShiftFilter>('All');
   const initial = nav?.newRoute ? null : rows.find((r) => r.code === nav?.code) ?? rows[0] ?? null;
@@ -74,22 +85,31 @@ export default function Routes({ rows }: { rows: RouteMaster[] }) {
       return { ...x, stops: s };
     });
 
-  /** Picking a center on a new route pre-fills its pickup points if none are entered yet. */
+  /** Picking a center on a new route pre-fills its pickup points and default plant if none are entered yet. */
   const changeCenter = (id: string) =>
     setD((x) => {
-      const c = centers.find((cc) => cc.id === id);
+      const c = allCenters.find((cc) => cc.code === id);
       const blank = x.stops.every((s) => !s.trim());
-      return { ...x, centerId: id, stops: isNew && blank && c ? [...c.fms.map((f) => `${f} FMS`), c.name] : x.stops };
+      const plantOk = !!c?.plant && allPlants.some((p) => p.code === c.plant && p.status === 'Active');
+      return {
+        ...x,
+        centerId: id,
+        stops: isNew && blank && c ? [...c.fms.map((f) => `${f} FMS`), c.name] : x.stops,
+        destination: !x.destination && plantOk ? c!.plant : x.destination,
+      };
     });
 
-  const center = centers.find((c) => c.id === d.centerId);
-  const stopSuggestions = center ? [...center.fms.map((f) => `${f} FMS`), center.name] : centers.map((c) => c.name);
+  // Dropdowns list active records, plus the one already on this route so an inactive pick still shows.
+  const centerOptions = allCenters.filter((c) => c.status === 'Active' || c.code === d.centerId);
+  const plantOptions = allPlants.filter((p) => p.status === 'Active' || p.code === d.destination);
+  const center = allCenters.find((c) => c.code === d.centerId);
+  const stopSuggestions = center ? [...center.fms.map((f) => `${f} FMS`), center.name] : centerOptions.map((c) => c.name);
 
   const term = q.trim().toLowerCase();
   const shown = rows.filter(
     (r) =>
       (shift === 'All' || r.shift === shift) &&
-      (!term || [r.code, r.name, centerName(r.centerId), r.tanker, r.destination, ...r.stops].some((v) => v.toLowerCase().includes(term))),
+      (!term || [r.code, r.name, centerName(r.centerId), r.tanker, plantName(r.destination), ...r.stops].some((v) => v.toLowerCase().includes(term))),
   );
 
   const save = () => {
@@ -176,7 +196,9 @@ export default function Routes({ rows }: { rows: RouteMaster[] }) {
                     <div className="font-medium">
                       <span className="num">{r.code}</span> · {r.name}
                     </div>
-                    <div className="text-xs text-zinc-500">{centerName(r.centerId)}</div>
+                    <div className="text-xs text-zinc-500">
+                      {centerName(r.centerId)} → {t(plantName(r.destination))}
+                    </div>
                   </div>
                 ),
               },
@@ -213,9 +235,9 @@ export default function Routes({ rows }: { rows: RouteMaster[] }) {
                 <Field label={t('Collection center')} error={errors.centerId}>
                   <select className="input" value={d.centerId} onChange={(e) => changeCenter(e.target.value)}>
                     <option value="">{t('Pick a center')}</option>
-                    {centers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} · {c.region}
+                    {centerOptions.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.name} · {t(c.region)}
                       </option>
                     ))}
                   </select>
@@ -223,9 +245,9 @@ export default function Routes({ rows }: { rows: RouteMaster[] }) {
                 <Field label={t('Delivers to')} error={errors.destination}>
                   <select className="input" value={d.destination} onChange={set('destination')}>
                     <option value="">{t('Pick the plant')}</option>
-                    {PLANTS.map((p) => (
-                      <option key={p} value={p}>
-                        {t(p)}
+                    {plantOptions.map((p) => (
+                      <option key={p.code} value={p.code}>
+                        {t(p.name)}
                       </option>
                     ))}
                   </select>
@@ -293,7 +315,7 @@ export default function Routes({ rows }: { rows: RouteMaster[] }) {
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700">
                       <Flag className="h-3.5 w-3.5" />
                     </span>
-                    {d.destination ? t(d.destination) : <span className="text-zinc-500">{t('Plant not picked yet')}</span>}
+                    {d.destination ? t(plantName(d.destination)) :<span className="text-zinc-500">{t('Plant not picked yet')}</span>}
                   </li>
                 </ol>
                 {errors.stops && (

@@ -47,6 +47,9 @@ export default function Login() {
       if (!/^\d{6}$/.test(otp)) return setError(t("Enter the 6-digit code from the SMS."));
     }
     setBusy(true);
+    // Field staff go back to the field form they opened (e.g. a driver's /field/driver link), else field collection.
+    const fieldDest = from.startsWith('/field/') ? from : '/field/collect';
+    const isDriver = fieldDest === '/field/driver';
     // TODO: replace with POST /api/auth/login or /api/auth/otp/verify
     window.setTimeout(() => {
       login(
@@ -54,9 +57,11 @@ export default function Login() {
           ? username.trim().toLowerCase() === DEMO_ADMIN.username
             ? { name: 'System Admin', email: 'admin@milco.lk', role: 'System admin', scope: 'All regions' }
             : { name: 'Nadeesha Perera', email: username, role: 'Finance manager', scope: 'All regions' }
-          :{ name: 'K. Dissanayake', email: mobile, role: 'Field officer', scope: 'Hingurakgoda CC' },
+          : isDriver
+            ? { name: 'M. Ajith Kumara', email: mobile, role: 'Tanker driver', scope: 'Route R-07' }
+            : { name: 'K. Dissanayake', email: mobile, role: 'Field officer', scope: 'Hingurakgoda CC' },
       );
-      navigate(mode === 'field' ? '/field/collect' : from, { replace: true });
+      navigate(mode === 'field' ? fieldDest : from, { replace: true });
     }, 500);
   };
 

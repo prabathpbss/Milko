@@ -7,6 +7,8 @@ import {
   KeyRound,
   Navigation,
   Route,
+  Factory,
+  Warehouse,
   Layers,
   LayoutDashboard,
   Map,
@@ -81,6 +83,8 @@ export const navGroups: NavGroup[] = [
     items: [
       { to: '/masters/regions', label: 'Regions', icon: Map },
       { to: '/masters/categories', label: 'Farmer categories', icon: Award },
+      { to: '/masters/plants', label: 'Plants', icon: Factory },
+      { to: '/masters/centers', label: 'Collection centers', icon: Warehouse },
       { to: '/masters/routes', label: 'Routes', icon: Route },
       { to: '/masters/roles', label: 'Roles', icon: ShieldCheck },
       { to: '/masters/scopes', label: 'Access scopes', icon: Layers },
