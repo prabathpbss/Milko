@@ -71,13 +71,14 @@ export interface RoleMaster {
 export const PERM_MODULES = permissionModules as readonly string[];
 export const PERM_ACTIONS = permissionActions as readonly string[];
 
-const permsOf = (name: string) => seedRoles.find((r) => r.name === name)!.perms;
+/** Seed permissions for a role from the mock list; roles not in that list start with none ticked. */
+const permsOf = (name: string): PermissionMatrix => seedRoles.find((r) => r.name === name)?.perms ?? emptyPerms();
 const matrix = (rows: string[]): PermissionMatrix =>
   Object.fromEntries(PERM_MODULES.map((m, i) => [m, Object.fromEntries(PERM_ACTIONS.map((a, j) => [a, rows[i]?.[j] === '1']))]));
 export const emptyPerms = () => matrix([]);
 
 const r = (x: Omit<RoleMaster, 'perms' | 'twoStep' | 'bindDevice' | 'system' | 'status'> & Partial<RoleMaster>): RoleMaster => ({
-  perms: permsOf(x.name),
+  perms: x.perms ?? permsOf(x.name),
   twoStep: x.signIn !== 'Mobile OTP',
   bindDevice: x.signIn === 'Mobile OTP',
   system: false,
