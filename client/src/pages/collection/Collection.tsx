@@ -9,7 +9,11 @@ import { StatusBadge } from '@/components/ui/Badge';
 import { FilterChips } from '@/components/ui/Tabs';
 import { Field } from '@/components/ui/Field';
 import { Progress } from '@/components/ui/misc';
-import { centers, deliveries as seed, farmers, type Delivery } from '@/data/mock';
+import { centers as liveCenters, deliveries as seed, farmers, type Delivery } from '@/data/mock';
+import { useActiveCenters } from '@/data/masters';
+import { useAuth } from '@/context/AuthContext';
+import { Badge } from '@/components/ui/Badge';
+import CollectedAt, { atCenter, collectedAtError, formatLocation, formatReason, type CollectedAtValue } from '@/components/ui/CollectedAt';
 import { evaluateDelivery } from '@/lib/pricing';
 import { lkr, num } from '@/lib/format';
 import { useToast } from '@/context/ToastContext';
@@ -36,7 +40,13 @@ function trBy(by: string, t: TFn) {
   return rest.length ? [t(head), ...rest].join(' · ') : t(by);
 }
 
-type F = 'all' | Delivery['result'];
+/** "Other: details" keeps the details as typed; the reason itself is translated. */
+function trVisitReason(r: string, t: TFn) {
+  const i = r.indexOf(': ');
+  return i < 0 ? t(r) : `${t(r.slice(0, i))}: ${r.slice(i + 2)}`;
+}
+
+type F = 'all' | Delivery['result'] | 'Farm';
 
 const blank = { farmerId: 'MF-004812', litres: '44.0', fat: '4.10', snf: '8.60', temp: '6.8', clr: '28.5', alcohol: 'Pass', adulteration: 'None found', cans: '2' };
 
@@ -49,9 +59,18 @@ export default function Collection() {
   const [filter, setFilter] = useState<F>('all');
   const [form, setForm] = useState(blank);
   const [closed, setClosed] = useState(false);
+  const [at, setAt] = useState<CollectedAtValue>(atCenter);
+  const { user } = useAuth();
+  const centers = useActiveCenters();
 
-  const center = centers.find((c) => c.id === centerId)!;
+  // Center list comes from the center master; today's litres from the live feed (0 for a new center).
+  const master = centers.find((c) => c.code === centerId) ?? centers[0];
+  const center = { name: master?.name ?? '', capacity: master?.capacity ?? 0, todayLitres: liveCenters.find((c) => c.id === master?.code)?.todayLitres ?? 1180 };
   const farmer = farmers.find((f) => f.id === form.farmerId);
+  // This center's farmers first; others still selectable (a farmer may deliver to a nearby center).
+  const usable = farmers.filter((f) => f.status !== 'Suspended');
+  const ownFarmers = usable.filter((f) => f.centerId === master?.code);
+  const otherFarmers = usable.filter((f) => f.centerId !== master?.code);
 
   const evaluation = useMemo(() => {
     const litres = parseFloat(form.litres);
@@ -73,7 +92,10 @@ export default function Collection() {
     e.preventDefault();
     if (!farmer) return toast(t('Choose a registered farmer first.'), 'error');
     if (!evaluation) return toast(t('Enter litres, FAT, SNF and temperature.'), 'error');
+    const atErr = collectedAtError(at, t);
+    if (atErr) return toast(atErr, 'error');
     const result = override ?? evaluation.result;
+    const farm = at.source === 'Farm';
     const now = new Date();
     const d: Delivery = {
       id: `D-${1013 + rows.length}`,
@@ -88,8 +110,9 @@ export default function Collection() {
       alcohol: form.alcohol as 'Pass' | 'Fail',
       adulteration: form.adulteration,
       result,
-      by: 'Counter 1',
+      by: farm ? `Farm visit · ${user?.name ?? ''}` : 'Counter 1',
       value: result === 'Rejected' ? 0 : evaluation.value,
+      ...(farm ? { source: 'Farm' as const, location: formatLocation(at), visitReason: formatReason(at) } : { source: 'Center' as const }),
     };
     setRows((r) => [d, ...r]);
     toast(
@@ -98,6 +121,7 @@ export default function Collection() {
         : t('Saved {litres} L · {value}. Receipt printing.', { litres: d.litres, value: lkr(d.value) }),
     );
     setForm({ ...blank, farmerId: '', litres: '', fat: '', snf: '', temp: '' });
+    setAt(atCenter()); // next farmer is most likely at the counter again
   };
 
   const accepted = rows.filter((r) => r.result !== 'Rejected');
@@ -105,8 +129,11 @@ export default function Collection() {
   const rejectedL = rows.filter((r) => r.result === 'Rejected').reduce((s, r) => s + r.litres, 0);
   const avgFat = accepted.reduce((s, r) => s + r.fat * r.litres, 0) / Math.max(1, acceptedL);
   const avgSnf = accepted.reduce((s, r) => s + r.snf * r.litres, 0) / Math.max(1, acceptedL);
-  const shown = filter === 'all' ? rows : rows.filter((r) => r.result === filter);
-  const cnt = (s: F) => (s === 'all' ? rows.length : rows.filter((r) => r.result === s).length);
+  const isFarm = (r: Delivery) => r.source === 'Farm';
+  const match = (r: Delivery, s: F) => s === 'all' || (s === 'Farm' ? isFarm(r) : r.result === s);
+  const shown = rows.filter((r) => match(r, filter));
+  const cnt = (s: F) => rows.filter((r) => match(r, s)).length;
+  const farmL = accepted.filter(isFarm).reduce((s, r) => s + r.litres, 0);
   const loaded = center.todayLitres - 1180 + acceptedL;
 
   return (
@@ -118,7 +145,7 @@ export default function Collection() {
         actions={
           <>
             <select className="input w-48" aria-label={t('Collection center')} value={centerId} onChange={(e) => setCenterId(e.target.value)}>
-              {centers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {centers.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
             </select>
             <select className="input w-32" aria-label={t('Shift')} value={shift} onChange={(e) => setShift(e.target.value as 'AM' | 'PM')}>
               <option value="AM">{t('Morning')}</option>
@@ -154,9 +181,16 @@ export default function Collection() {
                 <div className="flex gap-2">
                   <select className="input" value={form.farmerId} onChange={set('farmerId')} disabled={closed}>
                     <option value="">{t('Select farmer…')}</option>
-                    {farmers.filter((f) => f.status !== 'Suspended').map((f) => (
-                      <option key={f.id} value={f.id}>{f.id} · {f.name}</option>
-                    ))}
+                    {ownFarmers.length > 0 && (
+                      <optgroup label={t('Farmers of {center}', { center: center.name })}>
+                        {ownFarmers.map((f) => <option key={f.id} value={f.id}>{f.id} · {f.name}</option>)}
+                      </optgroup>
+                    )}
+                    {otherFarmers.length > 0 && (
+                      <optgroup label={t('Other centers')}>
+                        {otherFarmers.map((f) => <option key={f.id} value={f.id}>{f.id} · {f.name}</option>)}
+                      </optgroup>
+                    )}
                   </select>
                   <button type="button" className="btn btn-secondary btn-icon shrink-0" aria-label={t('Scan farmer card')} onClick={() => setForm((f) => ({ ...f, farmerId: 'MF-004812' }))}>
                     <ScanLine className="h-4 w-4" />
@@ -184,6 +218,10 @@ export default function Collection() {
                   <option value="Neutraliser">{t('Neutraliser')}</option>
                 </select>
               </Field>
+            </div>
+
+            <div className="max-w-2xl">
+              <CollectedAt value={at} onChange={setAt} farmAddress={farmer?.address} farmGps={farmer?.gps} disabled={closed} />
             </div>
 
             <div className="flex flex-col gap-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 lg:flex-row lg:items-center lg:justify-between">
@@ -247,6 +285,7 @@ export default function Collection() {
                 { id: 'Accepted', label: t('Accepted'), count: cnt('Accepted') },
                 { id: 'Flagged', label: t('Flagged'), count: cnt('Flagged') },
                 { id: 'Rejected', label: t('Rejected'), count: cnt('Rejected') },
+                { id: 'Farm', label: t('Farm visits'), count: cnt('Farm') },
               ]}
             />
           </div>
@@ -264,6 +303,21 @@ export default function Collection() {
                     <div className="num text-xs text-zinc-500">{r.farmerId}</div>
                   </div>
                 ),
+              },
+              {
+                key: 'source',
+                header: t('Collected at'),
+                className: 'whitespace-normal min-w-[170px] max-w-[240px]',
+                render: (r) =>
+                  isFarm(r) ? (
+                    <div title={r.location}>
+                      <Badge tone="warning">{t('Farm visit')}</Badge>
+                      {r.visitReason && <div className="mt-0.5 text-xs text-zinc-600">{trVisitReason(r.visitReason, t)}</div>}
+                      {r.location && <div className="mt-0.5 line-clamp-2 text-xs text-zinc-500">{r.location}</div>}
+                    </div>
+                  ) : (
+                    <span className="text-zinc-600">{t('At center')}</span>
+                  ),
               },
               { key: 'litres', header: t('Litres'), align: 'right', mono: true, render: (r) => num(r.litres, 1) },
               { key: 'fat', header: 'FAT', align: 'right', mono: true, render: (r) => r.fat.toFixed(2) },
@@ -303,6 +357,7 @@ export default function Collection() {
               {[
                 [t('Accepted'), `${num(acceptedL, 1)} L`],
                 [t('Rejected'), `${num(rejectedL, 1)} L`],
+                [t('From farm visits'), `${num(farmL, 1)} L`],
                 [t('Avg FAT / SNF'), `${avgFat.toFixed(2)} / ${avgSnf.toFixed(2)}`],
                 [t('Deliveries'), num(rows.length)],
               ].map(([k, v]) => (

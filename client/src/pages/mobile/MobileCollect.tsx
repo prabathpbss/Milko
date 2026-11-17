@@ -6,6 +6,9 @@ import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/misc';
 import { farmers } from '@/data/mock';
+import { useActiveCenters } from '@/data/masters';
+import { Badge } from '@/components/ui/Badge';
+import CollectedAt, { atCenter, collectedAtError, type CollectedAtValue } from '@/components/ui/CollectedAt';
 import { evaluateDelivery } from '@/lib/pricing';
 import { lkr, num } from '@/lib/format';
 import { useToast } from '@/context/ToastContext';
@@ -30,6 +33,7 @@ interface Saved {
   litres: number;
   value: number;
   result: string;
+  farm: boolean;
 }
 
 /** Field collection form — used on a phone at the collection point, also works on desktop. */
@@ -46,6 +50,10 @@ export default function MobileCollect() {
   const [pending, setPending] = useState(3);
   const [count, setCount] = useState(41);
   const [saved, setSaved] = useState<Saved[]>([]);
+  const centers = useActiveCenters();
+  const [centerId, setCenterId] = useState('CC-HNG');
+  const [at, setAt] = useState<CollectedAtValue>(atCenter);
+  const center = centers.find((c) => c.code === centerId) ?? centers[0];
 
   const farmer = farmers.find((f) => f.id === farmerId.trim().toUpperCase());
   const ev = useMemo(() => {
@@ -56,6 +64,8 @@ export default function MobileCollect() {
 
   const save = (reject = false) => {
     if (!farmer || !ev) return toast(t("Check the farmer ID and readings."), "error");
+    const atErr = collectedAtError(at, t);
+    if (atErr) return toast(atErr, 'error');
     const rejected = reject || ev.result === 'Rejected';
     setPending((p) => p + 1);
     setCount((c) => c + 1);
@@ -67,6 +77,7 @@ export default function MobileCollect() {
         litres: parseFloat(litres),
         value: rejected ? 0 : ev.value,
         result: rejected ? 'Rejected' : ev.result,
+        farm: at.source === 'Farm',
       },
       ...s,
     ]);
@@ -76,6 +87,7 @@ export default function MobileCollect() {
     setSnf('');
     setTemp('');
     setFarmerId('');
+    setAt(atCenter());
   };
 
   const big = 'input h-12 font-mono text-lg font-semibold tabular-nums';
@@ -85,7 +97,7 @@ export default function MobileCollect() {
       <PageHeader
         breadcrumb={[{ label: t("Field forms") }, { label: t("Field collection") }]}
         title={t("New delivery")}
-        description={t("Hingurakgoda CC · Morning shift · {n} deliveries today", { n: count })}
+        description={t("{center} · Morning shift · {n} deliveries today", { center: center?.name ?? '', n: count })}
         actions={
           <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800 ring-1 ring-amber-600/25">
             <WifiOff className="h-3.5 w-3.5" /> {t("Offline · {n} to upload", { n: pending })}
@@ -97,6 +109,17 @@ export default function MobileCollect() {
         <Card className="lg:col-span-3">
           <CardBody>
             <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); save(); }}>
+              <label className="block">
+                <span className="label mb-1.5 block">{t("Collection center")}</span>
+                <select className="input h-12" value={center?.code ?? ''} onChange={(e) => setCenterId(e.target.value)}>
+                  {centers.map((c) => (
+                    <option key={c.code} value={c.code}>{c.name}</option>
+                  ))}
+                </select>
+              </label>
+
+              <CollectedAt value={at} onChange={setAt} farmAddress={farmer?.address} farmGps={farmer?.gps} large />
+
               <div className="flex items-end gap-2">
                 <label className="flex-1">
                   <span className="label mb-1.5 block">{t("Farmer ID")}</span>
@@ -110,7 +133,8 @@ export default function MobileCollect() {
                     spellCheck={false}
                   />
                   <datalist id="field-farmers">
-                    {farmers.map((f) => (
+                    {/* This center's farmers first */}
+                    {[...farmers].sort((a, b) => Number(b.centerId === center?.code) - Number(a.centerId === center?.code)).map((f) => (
                       <option key={f.id} value={f.id}>{f.name}</option>
                     ))}
                   </datalist>
@@ -215,6 +239,7 @@ export default function MobileCollect() {
                 <li key={s.id} className="flex items-center gap-3 px-4 py-3 text-sm sm:px-5">
                   <span className="num w-12 shrink-0 text-zinc-500">{s.time}</span>
                   <span className="min-w-0 flex-1 truncate font-medium">{s.farmer}</span>
+                  {s.farm && <Badge tone="warning">{t('Farm visit')}</Badge>}
                   <span className="num">{num(s.litres, 1)} L</span>
                   <StatusBadge status={s.result} />
                 </li>

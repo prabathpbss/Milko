@@ -127,6 +127,8 @@ export const farmerById = (id?: string) => farmers.find((f) => f.id === id);
 
 /* ───────────── Deliveries (today) ───────────── */
 
+export type CollectionSource = 'Center' | 'Farm';
+
 export interface Delivery {
   id: string;
   time: string;
@@ -142,16 +144,21 @@ export interface Delivery {
   result: 'Accepted' | 'Rejected' | 'Flagged';
   by: string;
   value: number;
+  /** Where the milk was handed over. Missing = at the center counter. */
+  source?: CollectionSource;
+  /** Farm visit only: pickup address or GPS, and why staff went to the farm */
+  location?: string;
+  visitReason?: string;
 }
 
 export const deliveries: Delivery[] = [
-  { id: 'D-1012', time: '06:42', shift: 'AM', farmerId: 'MF-004812', farmerName: 'W. M. Sunil Bandara', litres: 44.0, fat: 4.1, snf: 8.6, temp: 6.8, alcohol: 'Pass', adulteration: 'None found', result: 'Accepted', by: 'Mobile · K.D.', value: 6710 },
+  { id: 'D-1012', time: '06:42', shift: 'AM', farmerId: 'MF-004812', farmerName: 'W. M. Sunil Bandara', litres: 44.0, fat: 4.1, snf: 8.6, temp: 6.8, alcohol: 'Pass', adulteration: 'None found', result: 'Accepted', by: 'Mobile · K.D.', value: 6710, source: 'Farm', location: 'No. 42, Yaya 4, Hingurakgoda', visitReason: 'Large volume' },
   { id: 'D-1011', time: '06:40', shift: 'AM', farmerId: 'MF-004813', farmerName: 'K. Chandrika Kumari', litres: 20.5, fat: 3.92, snf: 8.4, temp: 7.4, alcohol: 'Pass', adulteration: 'None found', result: 'Accepted', by: 'Counter 1', value: 2900 },
   { id: 'D-1010', time: '06:38', shift: 'AM', farmerId: 'MF-004901', farmerName: 'R. M. Piyasena', litres: 31.0, fat: 2.85, snf: 7.62, temp: 9.1, alcohol: 'Pass', adulteration: 'Water', result: 'Rejected', by: 'Counter 2', value: 0 },
   { id: 'D-1009', time: '06:37', shift: 'AM', farmerId: 'MF-005678', farmerName: 'N. Herath', litres: 18.0, fat: 3.7, snf: 8.21, temp: 12.3, alcohol: 'Pass', adulteration: 'None found', result: 'Flagged', by: 'Counter 1', value: 2522 },
   { id: 'D-1008', time: '06:35', shift: 'AM', farmerId: 'MF-006240', farmerName: 'P. Dilani', litres: 16.5, fat: 3.88, snf: 8.36, temp: 6.1, alcohol: 'Pass', adulteration: 'None found', result: 'Accepted', by: 'Counter 2', value: 2302 },
   { id: 'D-1007', time: '06:33', shift: 'AM', farmerId: 'MF-005678', farmerName: 'N. Herath', litres: 12.0, fat: 3.55, snf: 8.1, temp: 8.0, alcohol: 'Fail', adulteration: 'None found', result: 'Rejected', by: 'Counter 1', value: 0 },
-  { id: 'D-1006', time: '06:31', shift: 'AM', farmerId: 'MF-004812', farmerName: 'W. M. Sunil Bandara', litres: 2.5, fat: 4.05, snf: 8.55, temp: 7.0, alcohol: 'Pass', adulteration: 'None found', result: 'Accepted', by: 'Mobile · K.D.', value: 371 },
+  { id: 'D-1006', time: '06:31', shift: 'AM', farmerId: 'MF-004812', farmerName: 'W. M. Sunil Bandara', litres: 2.5, fat: 4.05, snf: 8.55, temp: 7.0, alcohol: 'Pass', adulteration: 'None found', result: 'Accepted', by: 'Mobile · K.D.', value: 371, source: 'Farm', location: 'No. 42, Yaya 4, Hingurakgoda', visitReason: 'Farmer cannot travel' },
   { id: 'D-1005', time: '06:30', shift: 'AM', farmerId: 'SOC-0090', farmerName: 'Yaya Dairy Society (bulk)', litres: 612.0, fat: 3.79, snf: 8.3, temp: 5.2, alcohol: 'Pass', adulteration: 'None found', result: 'Accepted', by: 'Counter 3', value: 85374 },
 ];
 

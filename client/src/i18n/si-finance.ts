@@ -24,6 +24,9 @@ export const si_finance: Record<string, string> = {
 
   /* ───── Dashboard ───── */
   'Good morning, {name}': 'සුබ උදෑසනක්, {name}',
+  'Good afternoon, {name}': 'සුබ දහවලක්, {name}',
+  'Good evening, {name}': 'සුබ සන්ධ්‍යාවක්, {name}',
+  'Good night, {name}': 'සුබ රාත්‍රියක්, {name}',
   'Collection overview for {date}.': '{date} දින කිරි එකතුවේ දළ විශ්ලේෂණය.',
   'Open reports': 'වාර්තා විවෘත කරන්න',
   'Record collection': 'කිරි එකතුව සටහන් කරන්න',

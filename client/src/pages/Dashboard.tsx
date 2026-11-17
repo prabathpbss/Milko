@@ -47,6 +47,14 @@ const alertStyle = {
   info: 'bg-sky-50 text-sky-700',
 };
 
+/** Greeting for the time of day on the user's device. */
+function greeting(hour = new Date().getHours()) {
+  if (hour >= 5 && hour < 12) return 'Good morning, {name}';
+  if (hour >= 12 && hour < 17) return 'Good afternoon, {name}';
+  if (hour >= 17 && hour < 21) return 'Good evening, {name}';
+  return 'Good night, {name}';
+}
+
 export default function Dashboard() {
   const { t } = useLang();
   const { user } = useAuth();
@@ -73,7 +81,7 @@ export default function Dashboard() {
   return (
     <>
       <PageHeader
-        title={t('Good morning, {name}', { name: user?.name.split(' ')[0] ?? '' })}
+        title={t(greeting(), { name: user?.name ?? '' })}
         description={t('Collection overview for {date}.', { date: TODAY })}
         actions={
           <>
