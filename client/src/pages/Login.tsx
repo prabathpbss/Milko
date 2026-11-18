@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
-import { Eye, EyeOff, Lock, Milk, ShieldCheck, Smartphone, Truck } from 'lucide-react';
-import logo from '@/assets/milco-logo.jpg';
+import { Eye, EyeOff, Lock, Smartphone } from 'lucide-react';
+import LoginLayout from '@/components/layout/LoginLayout';
+import { useAppearance } from '@/lib/appearance';
 import { useAuth } from '@/context/AuthContext';
 import { Field } from '@/components/ui/Field';
 import ThemeToggle from "@/components/ui/ThemeToggle";
@@ -16,6 +17,7 @@ const DEMO_ADMIN = { username: 'admin', password: 'Admin@123' };
 export default function Login() {
   const { user, login } = useAuth();
   const { t } = useLang();
+  const look = useAppearance();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? '/';
@@ -66,50 +68,11 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen bg-white">
-      {/* Brand panel */}
-      <section className="relative hidden w-[46%] max-w-[640px] flex-col justify-between overflow-hidden bg-brand-700 p-12 text-white lg:flex">
-        <div
-          aria-hidden
-          className="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-brand-600 opacity-60"
-        />
-        <div aria-hidden className="absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-brand-800 opacity-70" />
-        <div className="relative inline-flex w-fit rounded-2xl bg-[#fff] p-4 shadow-lg">
-          <img src={logo} alt="MILCO" className="h-16 w-auto" />
-        </div>
-        <div className="relative max-w-md">
-          <h1 className="text-4xl font-semibold leading-tight tracking-tight">
-            {t("Farmer & Milk Collection Management")}
-          </h1>
-          <p className="mt-4 text-base leading-relaxed text-brand-100">
-            {t("Farmers, daily collection, quality, payments and approvals in one place, posted straight to your ERP.")}
-          </p>
-          <ul className="mt-8 space-y-4 text-sm">
-            {[
-              { icon: Milk, text: '182,000+ litres recorded every day across 146 collection centers' },
-              { icon: Truck, text: 'Live tanker tracking from farm to plant' },
-              { icon: ShieldCheck, text: 'Odoo, SAP Business One and SAP S/4HANA connectors' },
-            ].map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-start gap-3">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/15">
-                  <Icon className="h-4 w-4" />
-                </span>
-                <span className="pt-1.5 text-brand-50">{t(text)}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <p className="relative text-xs text-brand-100">© 2026 Milk Industries of Lanka Company Ltd.</p>
-      </section>
-
-      {/* Form */}
-      <section className="flex flex-1 items-center justify-center px-4 py-10 sm:px-8">
-        <div className="w-full max-w-[400px]">
-          <img src={logo} alt="MILCO" className="mb-8 h-16 w-auto rounded-lg bg-[#fff] p-2 lg:hidden" />
+    <LoginLayout look={look}>
           <div className="mb-6 flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-semibold tracking-tight">{t("Sign in")}</h2>
-              <p className="mt-1 text-sm text-zinc-500">{t("Use your MILCO account.")}</p>
+              <h2 className="text-2xl font-semibold tracking-tight">{t(look.login.formTitle)}</h2>
+              {look.login.formSubtitle.trim() && <p className="mt-1 text-sm text-zinc-500">{t(look.login.formSubtitle)}</p>}
             </div>
             <div className="flex items-center gap-1">
               <ThemeToggle />
@@ -268,8 +231,6 @@ export default function Login() {
           <p className="mt-8 text-xs leading-relaxed text-zinc-500">
             {t("After 5 failed attempts the account locks for 15 minutes. Two-step verification is required for Finance and Admin roles.")}
           </p>
-        </div>
-      </section>
-    </div>
+    </LoginLayout>
   );
 }

@@ -16,6 +16,7 @@ import {
   PlugZap,
   RefreshCw,
   Settings,
+  Palette,
   ShieldAlert,
   ShieldCheck,
   Smartphone,
@@ -97,6 +98,7 @@ export const navGroups: NavGroup[] = [
       { to: '/erp/sync', label: 'Mapping & sync log', icon: RefreshCw },
       { to: '/users', label: 'Users & roles', icon: KeyRound },
       { to: '/settings', label: 'Settings', icon: Settings },
+      { to: '/appearance', label: 'Appearance', icon: Palette },
     ],
   },
 ];

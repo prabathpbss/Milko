@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useAppearance } from '@/lib/appearance';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -11,19 +12,22 @@ interface ThemeValue {
 const KEY = 'milco.theme';
 const ThemeContext = createContext<ThemeValue | null>(null);
 
-function readMode(): ThemeMode {
+/** The user's own choice, or null to follow the company default (Administration › Appearance). */
+function readMode(): ThemeMode | null {
   try {
     const v = localStorage.getItem(KEY);
-    return v === 'light' || v === 'dark' || v === 'system' ? v : 'system';
+    return v === 'light' || v === 'dark' || v === 'system' ? v : null;
   } catch {
-    return 'system';
+    return null;
   }
 }
 
 const darkQuery = () => window.matchMedia('(prefers-color-scheme: dark)');
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [mode, setModeState] = useState<ThemeMode>(readMode);
+  const [userMode, setModeState] = useState<ThemeMode | null>(readMode);
+  const companyDefault = useAppearance().theme;
+  const mode = userMode ?? companyDefault;
   const [systemDark, setSystemDark] = useState(() => darkQuery().matches);
 
   useEffect(() => {

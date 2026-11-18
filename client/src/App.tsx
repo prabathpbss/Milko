@@ -22,6 +22,7 @@ const ErpConnectors = lazy(() => import('@/pages/admin/ErpConnectors'));
 const ErpSync = lazy(() => import('@/pages/admin/ErpSync'));
 const UsersRoles = lazy(() => import('@/pages/admin/UsersRoles'));
 const Settings = lazy(() => import('@/pages/admin/Settings'));
+const Appearance = lazy(() => import('@/pages/admin/Appearance'));
 const Masters = lazy(() => import('@/pages/admin/Masters'));
 const FieldCollect = lazy(() => import('@/pages/mobile/MobileCollect'));
 const FieldDriver = lazy(() => import('@/pages/mobile/MobileDriver'));
@@ -62,6 +63,7 @@ export default function App() {
         <Route path="erp/sync" element={<ErpSync />} />
         <Route path="users" element={<UsersRoles />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="appearance" element={<Appearance />} />
         <Route path="masters" element={<Navigate to="/masters/regions" replace />} />
         <Route path="masters/:tab" element={<Masters />} />
         <Route path="field/collect" element={<FieldCollect />} />

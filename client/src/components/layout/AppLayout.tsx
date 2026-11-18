@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { Bell, ChevronDown, LogOut, Menu, Search, UserCircle2, X } from 'lucide-react';
 import logo from '@/assets/milco-logo.jpg';
 import { navGroups } from '@/config/nav';
+import { useAppearance } from '@/lib/appearance';
 import { useAuth } from '@/context/AuthContext';
 import { useClickOutside } from '@/hooks/useClickOutside';
 import { notifications } from '@/data/mock';
@@ -15,6 +16,7 @@ import PageSkeleton from '@/components/ui/PageSkeleton';
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useLang();
+  const look = useAppearance();
   return (
     <div className="flex h-full flex-col">
       <Link
@@ -22,12 +24,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         onClick={onNavigate}
         className="flex h-16 shrink-0 items-center gap-3 border-b border-zinc-100 px-5"
       >
-        <img src={logo} alt="MILCO" className="h-10 w-auto rounded-md bg-[#fff] p-1" />
-        <span className="text-xs font-medium leading-tight text-zinc-500">
-          {t("Farmer & Milk")}
-          <br />
-          {t("Collection")}
-        </span>
+        <img src={look.logoImage ?? logo} alt={look.companyName} className="h-10 w-auto max-w-[96px] rounded-md bg-[#fff] object-contain p-1" />
+        <span className="line-clamp-2 max-w-[9rem] text-xs font-medium leading-tight text-zinc-500">{t(look.appName)}</span>
       </Link>
       <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label={t("Main")}>
         {navGroups.map((g) => (
@@ -70,7 +68,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           </div>
         ))}
       </nav>
-      <div className="border-t border-zinc-100 px-5 py-3 text-xs text-zinc-500">MILCO FMS v1.0 · © 2026</div>
+      <div className="border-t border-zinc-100 px-5 py-3 text-xs text-zinc-500">{look.companyName} FMS v1.0 · © 2026</div>
     </div>
   );
 }
