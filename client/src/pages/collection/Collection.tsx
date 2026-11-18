@@ -1,38 +1,26 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
-import { CheckCircle2, Download, Lock, Printer, ScanLine, Thermometer, XCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Droplets, MapPin, Search, Smartphone, Users, Wallet, XCircle } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { DataTable } from '@/components/ui/DataTable';
-import { StatusBadge } from '@/components/ui/Badge';
+import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { FilterChips } from '@/components/ui/Tabs';
-import { Field } from '@/components/ui/Field';
-import { Progress } from '@/components/ui/misc';
-import { centers as liveCenters, deliveries as seed, farmers, type Delivery } from '@/data/mock';
-import { useActiveCenters } from '@/data/masters';
-import { useAuth } from '@/context/AuthContext';
-import { Badge } from '@/components/ui/Badge';
-import CollectedAt, { atCenter, collectedAtError, formatLocation, formatReason, type CollectedAtValue } from '@/components/ui/CollectedAt';
-import { evaluateDelivery } from '@/lib/pricing';
+import StatCard from '@/components/ui/StatCard';
+import { farmers } from '@/data/mock';
+import { centerName, useCenterMaster } from '@/data/masters';
+import { FIRST_DAY, TODAY_ISO, addDays, fmtDate, useDayDeliveries, type CollectionRecord } from '@/data/collection';
 import { lkr, num } from '@/lib/format';
 import { useToast } from '@/context/ToastContext';
 import { useLang } from '@/i18n/LanguageContext';
 
 type TFn = (s: string, v?: Record<string, string | number>) => string;
+type Shift = 'all' | 'AM' | 'PM';
+type Show = 'all' | 'supplied' | 'none' | 'rejected' | 'farm';
+type Result = CollectionRecord['result'];
 
-/** Quality reasons from evaluateDelivery come as English sentences; translate the known shapes. */
-function trReason(r: string, t: TFn) {
-  let m = /^Adulteration: (.+)$/.exec(r);
-  if (m) return t('Adulteration: {what}', { what: t(m[1]) });
-  m = /^Below minimum \(FAT (.+) \/ SNF (.+)\)$/.exec(r);
-  if (m) return t('Below minimum (FAT {fat} / SNF {snf})', { fat: m[1], snf: m[2] });
-  m = /^Temperature (.+) °C above (.+) °C$/.exec(r);
-  if (m) return t('Temperature {temp} °C above {max} °C', { temp: m[1], max: m[2] });
-  return t(r);
-}
-
-/** "Recorded by" values such as "Counter 2" or "Mobile · K.D.". */
+/** "Recorded by" values such as "Counter 2" or "Farm visit · K. Dissanayake". */
 function trBy(by: string, t: TFn) {
   const m = /^Counter (\d+)$/.exec(by);
   if (m) return t('Counter {n}', { n: m[1] });
@@ -46,351 +34,341 @@ function trVisitReason(r: string, t: TFn) {
   return i < 0 ? t(r) : `${t(r.slice(0, i))}: ${r.slice(i + 2)}`;
 }
 
-type F = 'all' | Delivery['result'] | 'Farm';
+/** One farmer's milk for the chosen day. */
+interface FarmerDay {
+  farmerId: string;
+  name: string;
+  centerId: string;
+  am: number;
+  pm: number;
+  /** Accepted + flagged litres (paid) */
+  accepted: number;
+  rejected: number;
+  fat: number;
+  snf: number;
+  value: number;
+  count: number;
+  farmVisits: number;
+  /** Worst result of the day; null = no delivery */
+  status: Result | null;
+  items: CollectionRecord[];
+}
 
-const blank = { farmerId: 'MF-004812', litres: '44.0', fat: '4.10', snf: '8.60', temp: '6.8', clr: '28.5', alcohol: 'Pass', adulteration: 'None found', cans: '2' };
+const RANK: Record<Result, number> = { Accepted: 0, Flagged: 1, Rejected: 2 };
 
+function summarise(items: CollectionRecord[], farmerId: string, name: string, centerId: string): FarmerDay {
+  const paid = items.filter((d) => d.result !== 'Rejected');
+  const accepted = paid.reduce((s, d) => s + d.litres, 0);
+  return {
+    farmerId,
+    name,
+    centerId,
+    am: paid.filter((d) => d.shift === 'AM').reduce((s, d) => s + d.litres, 0),
+    pm: paid.filter((d) => d.shift === 'PM').reduce((s, d) => s + d.litres, 0),
+    accepted,
+    rejected: items.filter((d) => d.result === 'Rejected').reduce((s, d) => s + d.litres, 0),
+    fat: paid.reduce((s, d) => s + d.fat * d.litres, 0) / Math.max(accepted, 1e-9),
+    snf: paid.reduce((s, d) => s + d.snf * d.litres, 0) / Math.max(accepted, 1e-9),
+    value: items.reduce((s, d) => s + d.value, 0),
+    count: items.length,
+    farmVisits: items.filter((d) => d.source === 'Farm').length,
+    status: items.length ? items.reduce<Result>((w, d) => (RANK[d.result] > RANK[w] ? d.result : w), 'Accepted') : null,
+    items: [...items].sort((a, b) => a.time.localeCompare(b.time)),
+  };
+}
+
+/** Daily collection — read-only view of a chosen day's milk, farmer by farmer. Milk is recorded in Field collection. */
 export default function Collection() {
   const toast = useToast();
   const { t } = useLang();
-  const [centerId, setCenterId] = useState('CC-HNG');
-  const [shift, setShift] = useState<'AM' | 'PM'>('AM');
-  const [rows, setRows] = useState<Delivery[]>(seed);
-  const [filter, setFilter] = useState<F>('all');
-  const [form, setForm] = useState(blank);
-  const [closed, setClosed] = useState(false);
-  const [at, setAt] = useState<CollectedAtValue>(atCenter);
-  const { user } = useAuth();
-  const centers = useActiveCenters();
+  const centers = useCenterMaster();
+  const [date, setDate] = useState(TODAY_ISO);
+  const [centerId, setCenterId] = useState<string>('CC-HNG');
+  const [shift, setShift] = useState<Shift>('all');
+  const [show, setShow] = useState<Show>('all');
+  const [q, setQ] = useState('');
+  const [selId, setSelId] = useState<string | null>(null);
 
-  // Center list comes from the center master; today's litres from the live feed (0 for a new center).
-  const master = centers.find((c) => c.code === centerId) ?? centers[0];
-  const center = { name: master?.name ?? '', capacity: master?.capacity ?? 0, todayLitres: liveCenters.find((c) => c.id === master?.code)?.todayLitres ?? 1180 };
-  const farmer = farmers.find((f) => f.id === form.farmerId);
-  // This center's farmers first; others still selectable (a farmer may deliver to a nearby center).
-  const usable = farmers.filter((f) => f.status !== 'Suspended');
-  const ownFarmers = usable.filter((f) => f.centerId === master?.code);
-  const otherFarmers = usable.filter((f) => f.centerId !== master?.code);
+  const records = useDayDeliveries(date, centerId, shift);
 
-  const evaluation = useMemo(() => {
-    const litres = parseFloat(form.litres);
-    const fat = parseFloat(form.fat);
-    const snf = parseFloat(form.snf);
-    const temp = parseFloat(form.temp);
-    if (![litres, fat, snf, temp].every(Number.isFinite) || litres <= 0) return null;
-    return evaluateDelivery({
-      litres, fat, snf, temp,
-      alcohol: form.alcohol as 'Pass' | 'Fail',
-      adulteration: form.adulteration,
-      category: farmer?.category ?? 'Standard',
-    });
-  }, [form, farmer]);
+  // One row per farmer: everyone who delivered, plus active farmers of the center who did not.
+  const rows = useMemo(() => {
+    const byFarmer = new Map<string, CollectionRecord[]>();
+    for (const d of records) byFarmer.set(d.farmerId, [...(byFarmer.get(d.farmerId) ?? []), d]);
+    const list: FarmerDay[] = [];
+    for (const [id, items] of byFarmer) list.push(summarise(items, id, items[0].farmerName, items[0].centerId));
+    for (const f of farmers) {
+      if (f.status === 'Active' && !byFarmer.has(f.id) && (centerId === 'all' || f.centerId === centerId)) list.push(summarise([], f.id, f.name, f.centerId));
+    }
+    return list.sort((a, b) => b.accepted - a.accepted || a.name.localeCompare(b.name));
+  }, [records, centerId]);
 
-  const set = (k: keyof typeof blank) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const is = (r: FarmerDay, s: Show) =>
+    s === 'all' ||
+    (s === 'supplied' && r.count > 0) ||
+    (s === 'none' && r.count === 0) ||
+    (s === 'rejected' && r.rejected > 0) ||
+    (s === 'farm' && r.farmVisits > 0);
+  const term = q.trim().toLowerCase();
+  const shown = rows.filter((r) => is(r, show) && (!term || r.name.toLowerCase().includes(term) || r.farmerId.toLowerCase().includes(term)));
+  const count = (s: Show) => rows.filter((r) => is(r, s)).length;
 
-  const save = (e: FormEvent, override?: 'Rejected') => {
-    e.preventDefault();
-    if (!farmer) return toast(t('Choose a registered farmer first.'), 'error');
-    if (!evaluation) return toast(t('Enter litres, FAT, SNF and temperature.'), 'error');
-    const atErr = collectedAtError(at, t);
-    if (atErr) return toast(atErr, 'error');
-    const result = override ?? evaluation.result;
-    const farm = at.source === 'Farm';
-    const now = new Date();
-    const d: Delivery = {
-      id: `D-${1013 + rows.length}`,
-      time: now.toTimeString().slice(0, 5),
-      shift,
-      farmerId: farmer.id,
-      farmerName: farmer.name,
-      litres: parseFloat(form.litres),
-      fat: parseFloat(form.fat),
-      snf: parseFloat(form.snf),
-      temp: parseFloat(form.temp),
-      alcohol: form.alcohol as 'Pass' | 'Fail',
-      adulteration: form.adulteration,
-      result,
-      by: farm ? `Farm visit · ${user?.name ?? ''}` : 'Counter 1',
-      value: result === 'Rejected' ? 0 : evaluation.value,
-      ...(farm ? { source: 'Farm' as const, location: formatLocation(at), visitReason: formatReason(at) } : { source: 'Center' as const }),
-    };
-    setRows((r) => [d, ...r]);
-    toast(
-      result === 'Rejected'
-        ? t('Rejected {litres} L from {name}. SMS sent.', { litres: d.litres, name: farmer.name })
-        : t('Saved {litres} L · {value}. Receipt printing.', { litres: d.litres, value: lkr(d.value) }),
-    );
-    setForm({ ...blank, farmerId: '', litres: '', fat: '', snf: '', temp: '' });
-    setAt(atCenter()); // next farmer is most likely at the counter again
+  // Day totals
+  const supplied = rows.filter((r) => r.count > 0);
+  const acceptedL = supplied.reduce((s, r) => s + r.accepted, 0);
+  const rejectedL = supplied.reduce((s, r) => s + r.rejected, 0);
+  const value = supplied.reduce((s, r) => s + r.value, 0);
+  const avgFat = supplied.reduce((s, r) => s + r.fat * r.accepted, 0) / Math.max(acceptedL, 1e-9);
+  const avgSnf = supplied.reduce((s, r) => s + r.snf * r.accepted, 0) / Math.max(acceptedL, 1e-9);
+  const farmL = records.filter((d) => d.source === 'Farm' && d.result !== 'Rejected').reduce((s, d) => s + d.litres, 0);
+  const sumOf = (k: 'am' | 'pm' | 'accepted' | 'rejected' | 'value' | 'count') => shown.reduce((s, r) => s + r[k], 0);
+
+  const sel = rows.find((r) => r.farmerId === selId) ?? null;
+  const go = (n: number) => {
+    const next = addDays(date, n);
+    if (next >= FIRST_DAY && next <= TODAY_ISO) setDate(next);
   };
-
-  const accepted = rows.filter((r) => r.result !== 'Rejected');
-  const acceptedL = accepted.reduce((s, r) => s + r.litres, 0);
-  const rejectedL = rows.filter((r) => r.result === 'Rejected').reduce((s, r) => s + r.litres, 0);
-  const avgFat = accepted.reduce((s, r) => s + r.fat * r.litres, 0) / Math.max(1, acceptedL);
-  const avgSnf = accepted.reduce((s, r) => s + r.snf * r.litres, 0) / Math.max(1, acceptedL);
-  const isFarm = (r: Delivery) => r.source === 'Farm';
-  const match = (r: Delivery, s: F) => s === 'all' || (s === 'Farm' ? isFarm(r) : r.result === s);
-  const shown = rows.filter((r) => match(r, filter));
-  const cnt = (s: F) => rows.filter((r) => match(r, s)).length;
-  const farmL = accepted.filter(isFarm).reduce((s, r) => s + r.litres, 0);
-  const loaded = center.todayLitres - 1180 + acceptedL;
+  const where = centerId === 'all' ? t('All centers') : centerName(centerId);
+  const shiftLabel = shift === 'AM' ? t('Morning') : shift === 'PM' ? t('Evening') : t('Both shifts');
 
   return (
     <>
       <PageHeader
         breadcrumb={[{ label: t('Collection') }, { label: t('Daily collection') }]}
-        title={t(shift === 'AM' ? '{center} · Morning shift' : '{center} · Evening shift', { center: center.name })}
-        description={t('12 Nov 2026 · weighing scale and milk analyser connected')}
+        title={t('Daily collection')}
+        description={t('{center} · {date} · {shift}', { center: where, date: fmtDate(date), shift: shiftLabel })}
         actions={
           <>
-            <select className="input w-48" aria-label={t('Collection center')} value={centerId} onChange={(e) => setCenterId(e.target.value)}>
-              {centers.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
-            </select>
-            <select className="input w-32" aria-label={t('Shift')} value={shift} onChange={(e) => setShift(e.target.value as 'AM' | 'PM')}>
-              <option value="AM">{t('Morning')}</option>
-              <option value="PM">{t('Evening')}</option>
-            </select>
-            <button
-              className="btn btn-dark"
-              disabled={closed}
-              onClick={() => {
-                setClosed(true);
-                toast(t('Shift closed. Goods receipt queued for SAP B1.'));
-              }}
-            >
-              <Lock className="h-4 w-4" /> {closed ? t('Shift closed') : t('Close shift')}
+            <button type="button" className="btn btn-secondary" onClick={() => toast(t('Daily collection exported'))}>
+              <Download className="h-4 w-4" /> {t('Export')}
             </button>
+            <Link to="/field/collect" className="btn btn-primary">
+              <Smartphone className="h-4 w-4" /> {t('Record milk')}
+            </Link>
           </>
         }
       />
 
+      {/* Filters */}
       <Card className="mb-6">
-        <CardHeader
-          title={t('New delivery')}
-          subtitle={
-            farmer
-              ? t('{name} · {category} · usually {litres} L per shift', { name: farmer.name, category: t(farmer.category), litres: num(farmer.avgLitres / 2, 0) })
-              : t('Scan the farmer card or type the farmer ID')
-          }
-        />
-        <form onSubmit={(e) => save(e)}>
-          <CardBody className="space-y-5">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-8">
-              <Field label={t('Farmer')} className="sm:col-span-2">
-                <div className="flex gap-2">
-                  <select className="input" value={form.farmerId} onChange={set('farmerId')} disabled={closed}>
-                    <option value="">{t('Select farmer…')}</option>
-                    {ownFarmers.length > 0 && (
-                      <optgroup label={t('Farmers of {center}', { center: center.name })}>
-                        {ownFarmers.map((f) => <option key={f.id} value={f.id}>{f.id} · {f.name}</option>)}
-                      </optgroup>
-                    )}
-                    {otherFarmers.length > 0 && (
-                      <optgroup label={t('Other centers')}>
-                        {otherFarmers.map((f) => <option key={f.id} value={f.id}>{f.id} · {f.name}</option>)}
-                      </optgroup>
-                    )}
-                  </select>
-                  <button type="button" className="btn btn-secondary btn-icon shrink-0" aria-label={t('Scan farmer card')} onClick={() => setForm((f) => ({ ...f, farmerId: 'MF-004812' }))}>
-                    <ScanLine className="h-4 w-4" />
-                  </button>
-                </div>
-              </Field>
-              <Field label={t('Litres')}><input className="input num text-base font-semibold" inputMode="decimal" value={form.litres} onChange={set('litres')} disabled={closed} /></Field>
-              <Field label={t('FAT %')}><input className="input num" inputMode="decimal" value={form.fat} onChange={set('fat')} disabled={closed} /></Field>
-              <Field label={t('SNF %')}><input className="input num" inputMode="decimal" value={form.snf} onChange={set('snf')} disabled={closed} /></Field>
-              <Field label={t('Temp °C')}><input className="input num" inputMode="decimal" value={form.temp} onChange={set('temp')} disabled={closed} /></Field>
-              <Field label={t('Density (CLR)')}><input className="input num" inputMode="decimal" value={form.clr} onChange={set('clr')} disabled={closed} /></Field>
-              <Field label={t('Cans')}><input className="input num" inputMode="numeric" value={form.cans} onChange={set('cans')} disabled={closed} /></Field>
-              <Field label={t('Alcohol test')}>
-                <select className="input" value={form.alcohol} onChange={set('alcohol')} disabled={closed}>
-                  <option value="Pass">{t('Pass')}</option>
-                  <option value="Fail">{t('Fail')}</option>
-                </select>
-              </Field>
-              <Field label={t('Adulteration')}>
-                <select className="input" value={form.adulteration} onChange={set('adulteration')} disabled={closed}>
-                  <option value="None found">{t('None found')}</option>
-                  <option value="Water">{t('Water')}</option>
-                  <option value="Starch">{t('Starch')}</option>
-                  <option value="Sugar">{t('Sugar')}</option>
-                  <option value="Neutraliser">{t('Neutraliser')}</option>
-                </select>
-              </Field>
-            </div>
-
-            <div className="max-w-2xl">
-              <CollectedAt value={at} onChange={setAt} farmAddress={farmer?.address} farmGps={farmer?.gps} disabled={closed} />
-            </div>
-
-            <div className="flex flex-col gap-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 lg:flex-row lg:items-center lg:justify-between">
-              {evaluation ? (
-                <div className="flex items-start gap-3">
-                  {evaluation.result === 'Rejected' ? (
-                    <XCircle className="mt-0.5 h-6 w-6 shrink-0 text-red-600" />
-                  ) : evaluation.result === 'Flagged' ? (
-                    <Thermometer className="mt-0.5 h-6 w-6 shrink-0 text-amber-600" />
-                  ) : (
-                    <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-emerald-600" />
-                  )}
-                  <div>
-                    <p className="text-sm font-semibold">
-                      {evaluation.result === 'Rejected'
-                        ? t('Reject this delivery')
-                        : t('{result} · Rs {rate} per litre', { result: t(evaluation.result), rate: evaluation.rate.toFixed(2) })}
-                    </p>
-                    <p className="text-sm text-zinc-600">
-                      {evaluation.reasons.length
-                        ? evaluation.reasons.map((r) => trReason(r, t)).join(' · ')
-                        : t('Passed all quality checks, chill bonus applied.')}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-zinc-500">{t('Enter readings to see the result and value.')}</p>
-              )}
-              <div className="flex flex-wrap items-center gap-3">
-                {evaluation && evaluation.result !== 'Rejected' && (
-                  <span className="num text-xl font-semibold">{lkr(evaluation.value)}</span>
-                )}
-                <button type="button" className="btn btn-secondary" disabled={closed} onClick={(e) => save(e, 'Rejected')}>
-                  {t('Reject')}
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={closed || !evaluation}>
-                  <Printer className="h-4 w-4" /> {evaluation?.result === 'Rejected' ? t('Save rejection') : t('Accept & print receipt')}
-                </button>
-              </div>
-            </div>
-          </CardBody>
-        </form>
-      </Card>
-
-      <div className="grid gap-6 xl:grid-cols-4">
-        <Card className="xl:col-span-3">
-          <CardHeader
-            title={t("This shift's deliveries")}
-            actions={
-              <button className="btn btn-secondary btn-sm" onClick={() => toast(t('Shift report exported'))}>
-                <Download className="h-3.5 w-3.5" /> {t('Export')}
+        <CardBody className="flex flex-wrap items-end gap-4">
+          <div className="flex flex-col gap-1.5">
+            <span className="label">{t('Date')}</span>
+            <div className="flex items-center gap-1">
+              <button type="button" className="btn btn-secondary btn-icon" onClick={() => go(-1)} disabled={date <= FIRST_DAY} aria-label={t('Previous day')}>
+                <ChevronLeft className="h-4 w-4" />
               </button>
-            }
-          />
-          <div className="border-b border-zinc-100 px-4 py-3">
-            <FilterChips<F>
-              value={filter}
-              onChange={setFilter}
+              <input
+                type="date"
+                className="input num w-44"
+                aria-label={t('Date')}
+                value={date}
+                min={FIRST_DAY}
+                max={TODAY_ISO}
+                onChange={(e) => e.target.value && setDate(e.target.value)}
+              />
+              <button type="button" className="btn btn-secondary btn-icon" onClick={() => go(1)} disabled={date >= TODAY_ISO} aria-label={t('Next day')}>
+                <ChevronRight className="h-4 w-4" />
+              </button>
+              {date !== TODAY_ISO && (
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDate(TODAY_ISO)}>
+                  {t('Today')}
+                </button>
+              )}
+            </div>
+          </div>
+          <label className="flex flex-col gap-1.5">
+            <span className="label">{t('Collection center')}</span>
+            <select
+              className="input w-56"
+              value={centerId}
+              onChange={(e) => {
+                setCenterId(e.target.value);
+                setSelId(null);
+              }}
+            >
+              <option value="all">{t('All centers')}</option>
+              {centers.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.name}
+                  {c.status !== 'Active' ? ` (${t('Inactive')})` : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="flex flex-col gap-1.5">
+            <span className="label">{t('Shift')}</span>
+            <FilterChips<Shift>
+              value={shift}
+              onChange={setShift}
               options={[
-                { id: 'all', label: t('All'), count: cnt('all') },
-                { id: 'Accepted', label: t('Accepted'), count: cnt('Accepted') },
-                { id: 'Flagged', label: t('Flagged'), count: cnt('Flagged') },
-                { id: 'Rejected', label: t('Rejected'), count: cnt('Rejected') },
-                { id: 'Farm', label: t('Farm visits'), count: cnt('Farm') },
+                { id: 'all', label: t('Both') },
+                { id: 'AM', label: t('Morning') },
+                { id: 'PM', label: t('Evening') },
               ]}
             />
           </div>
-          <DataTable<Delivery>
-            rows={shown}
-            rowKey={(r) => r.id}
-            columns={[
-              { key: 'time', header: t('Time'), mono: true },
-              {
-                key: 'farmer',
-                header: t('Farmer'),
-                render: (r) => (
-                  <div>
-                    <div className="font-medium">{r.farmerName}</div>
-                    <div className="num text-xs text-zinc-500">{r.farmerId}</div>
-                  </div>
-                ),
-              },
-              {
-                key: 'source',
-                header: t('Collected at'),
-                className: 'whitespace-normal min-w-[170px] max-w-[240px]',
-                render: (r) =>
-                  isFarm(r) ? (
-                    <div title={r.location}>
-                      <Badge tone="warning">{t('Farm visit')}</Badge>
-                      {r.visitReason && <div className="mt-0.5 text-xs text-zinc-600">{trVisitReason(r.visitReason, t)}</div>}
-                      {r.location && <div className="mt-0.5 line-clamp-2 text-xs text-zinc-500">{r.location}</div>}
-                    </div>
-                  ) : (
-                    <span className="text-zinc-600">{t('At center')}</span>
-                  ),
-              },
-              { key: 'litres', header: t('Litres'), align: 'right', mono: true, render: (r) => num(r.litres, 1) },
-              { key: 'fat', header: 'FAT', align: 'right', mono: true, render: (r) => r.fat.toFixed(2) },
-              { key: 'snf', header: 'SNF', align: 'right', mono: true, render: (r) => r.snf.toFixed(2) },
-              {
-                key: 'temp',
-                header: '°C',
-                align: 'right',
-                render: (r) => <span className={clsx('num', r.temp > 10 && 'font-semibold text-amber-700')}>{r.temp.toFixed(1)}</span>,
-              },
-              {
-                key: 'tests',
-                header: t('Tests'),
-                render: (r) => (
-                  <span className="text-xs text-zinc-600">
-                    {t('Alcohol')} {r.alcohol === 'Pass' ? '✓' : '✗'} · {r.adulteration === 'None found' ? t('Clean') : t(r.adulteration)}
-                  </span>
-                ),
-              },
-              { key: 'result', header: t('Result'), render: (r) => <StatusBadge status={r.result} /> },
-              { key: 'value', header: t('Value'), align: 'right', mono: true, render: (r) => (r.value ? lkr(r.value) : '—') },
-              { key: 'by', header: t('Recorded by'), className: 'text-zinc-500', render: (r) => trBy(r.by, t) },
+        </CardBody>
+      </Card>
+
+      {/* Day totals */}
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <StatCard label={t('Farmers supplied')} value={`${num(supplied.length)} / ${num(rows.length)}`} icon={Users} />
+        <StatCard label={t('Accepted')} value={`${num(acceptedL, 1)} L`} icon={Droplets} hint={t('Avg FAT {fat} · SNF {snf}', { fat: avgFat.toFixed(2), snf: avgSnf.toFixed(2) })} />
+        <StatCard label={t('Rejected')} value={`${num(rejectedL, 1)} L`} icon={XCircle} tone={rejectedL ? 'danger' : 'default'} />
+        <StatCard label={t('From farm visits')} value={`${num(farmL, 1)} L`} icon={MapPin} />
+        <StatCard label={t('Value to farmers')} value={lkr(value)} icon={Wallet} />
+      </div>
+
+      {/* Farmer by farmer */}
+      <Card>
+        <CardHeader title={t('Farmer by farmer')} subtitle={t('Click a farmer to see each delivery.')} />
+        <div className="flex flex-wrap items-center gap-3 border-b border-zinc-100 px-4 py-3">
+          <FilterChips<Show>
+            value={show}
+            onChange={setShow}
+            options={[
+              { id: 'all', label: t('All farmers'), count: count('all') },
+              { id: 'supplied', label: t('Supplied'), count: count('supplied') },
+              { id: 'none', label: t('No delivery'), count: count('none') },
+              { id: 'rejected', label: t('With rejections'), count: count('rejected') },
+              { id: 'farm', label: t('Farm visits'), count: count('farm') },
             ]}
           />
-          <p className="border-t border-zinc-100 px-5 py-3 text-xs text-zinc-500">
-            {t('Edits after the shift is closed need supervisor approval and are kept in the audit trail.')}{' '}
-            <Link to="/quality" className="font-medium text-brand-700 hover:underline">
-              {t('View exceptions')}
-            </Link>
-          </p>
-        </Card>
-
-        <div className="flex flex-col gap-6">
-          <Card>
-            <CardHeader title={t('Shift summary')} />
-            <CardBody className="space-y-4">
-              {[
-                [t('Accepted'), `${num(acceptedL, 1)} L`],
-                [t('Rejected'), `${num(rejectedL, 1)} L`],
-                [t('From farm visits'), `${num(farmL, 1)} L`],
-                [t('Avg FAT / SNF'), `${avgFat.toFixed(2)} / ${avgSnf.toFixed(2)}`],
-                [t('Deliveries'), num(rows.length)],
-              ].map(([k, v]) => (
-                <div key={k} className="flex items-baseline justify-between gap-2">
-                  <span className="text-sm text-zinc-500">{k}</span>
-                  <span className="num text-lg font-semibold">{v}</span>
-                </div>
-              ))}
-              <div className="space-y-1.5 border-t border-zinc-100 pt-4">
-                <div className="flex justify-between text-xs text-zinc-500">
-                  <span>{t('Center capacity')}</span>
-                  <span className="num">{num(loaded)} / {num(center.capacity)} L</span>
-                </div>
-                <Progress value={loaded} max={center.capacity} tone={loaded / center.capacity > 0.95 ? 'warning' : 'dark'} label={t('Center capacity')} />
-              </div>
-            </CardBody>
-          </Card>
-          <Card>
-            <CardHeader title={t('Chillers & tanker')} />
-            <CardBody className="space-y-3 text-sm">
-              <div className="flex justify-between"><span>{t('Chiller tank {n}', { n: 1 })}</span><span className="num">9,800 L · 4.1 °C</span></div>
-              <div className="flex justify-between"><span>{t('Chiller tank {n}', { n: 2 })}</span><span className="num">8,210 L · 4.4 °C</span></div>
-              <div className="flex items-center justify-between">
-                <span>NP-LK 4521 · R-07</span>
-                <StatusBadge status="Delayed" />
-              </div>
-              <Link to="/logistics" className="btn btn-secondary w-full">
-                {t('Track tanker')}
-              </Link>
-            </CardBody>
-          </Card>
+          <label className="relative ml-auto min-w-[200px]">
+            <span className="sr-only">{t('Search')}</span>
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+            <input className="input pl-9" placeholder={t('Farmer name or ID…')} value={q} onChange={(e) => setQ(e.target.value)} />
+          </label>
         </div>
-      </div>
+        <DataTable<FarmerDay>
+          rows={shown}
+          rowKey={(r) => r.farmerId}
+          selectedKey={selId}
+          onRowClick={(r) => setSelId(r.farmerId === selId ? null : r.farmerId)}
+          empty={t('No collection for this day.')}
+          columns={[
+            {
+              key: 'farmer',
+              header: t('Farmer'),
+              render: (r) => (
+                <div>
+                  <div className="font-medium">{r.name}</div>
+                  <div className="text-xs text-zinc-500">
+                    <span className="num">{r.farmerId}</span>
+                    {centerId === 'all' && ` · ${centerName(r.centerId)}`}
+                  </div>
+                </div>
+              ),
+            },
+            { key: 'am', header: t('Morning L'), align: 'right', mono: true, render: (r) => (r.am ? num(r.am, 1) : '—') },
+            { key: 'pm', header: t('Evening L'), align: 'right', mono: true, render: (r) => (r.pm ? num(r.pm, 1) : '—') },
+            { key: 'total', header: t('Accepted L'), align: 'right', mono: true, render: (r) => <span className="font-semibold">{r.accepted ? num(r.accepted, 1) : '—'}</span> },
+            { key: 'fat', header: 'FAT', align: 'right', mono: true, render: (r) => (r.accepted ? r.fat.toFixed(2) : '—') },
+            { key: 'snf', header: 'SNF', align: 'right', mono: true, render: (r) => (r.accepted ? r.snf.toFixed(2) : '—') },
+            {
+              key: 'rej',
+              header: t('Rejected L'),
+              align: 'right',
+              render: (r) => <span className={clsx('num', r.rejected > 0 && 'font-semibold text-red-700')}>{r.rejected ? num(r.rejected, 1) : '—'}</span>,
+            },
+            { key: 'count', header: t('Deliveries'), align: 'right', mono: true, render: (r) => r.count },
+            { key: 'value', header: t('Value'), align: 'right', mono: true, render: (r) => (r.value ? lkr(r.value) : '—') },
+            {
+              key: 'status',
+              header: t('Result'),
+              render: (r) =>
+                r.status ? (
+                  <span className="flex flex-wrap items-center gap-1">
+                    {r.status === 'Rejected' && r.accepted > 0 ? <Badge tone="warning">{t('Part rejected')}</Badge> : <StatusBadge status={r.status} />}
+                    {r.farmVisits > 0 && <Badge tone="warning">{t('Farm visit')}</Badge>}
+                  </span>
+                ) : (
+                  <Badge tone="neutral">{t('No delivery')}</Badge>
+                ),
+            },
+          ]}
+          footer={
+            shown.length > 0 && (
+              <tr className="text-sm">
+                <td className="px-4 py-3">{t('Total · {n} farmers', { n: shown.length })}</td>
+                <td className="num px-4 py-3 text-right">{num(sumOf('am'), 1)}</td>
+                <td className="num px-4 py-3 text-right">{num(sumOf('pm'), 1)}</td>
+                <td className="num px-4 py-3 text-right">{num(sumOf('accepted'), 1)}</td>
+                <td className="px-4 py-3" />
+                <td className="px-4 py-3" />
+                <td className="num px-4 py-3 text-right">{num(sumOf('rejected'), 1)}</td>
+                <td className="num px-4 py-3 text-right">{sumOf('count')}</td>
+                <td className="num whitespace-nowrap px-4 py-3 text-right">{lkr(sumOf('value'))}</td>
+                <td className="px-4 py-3" />
+              </tr>
+            )
+          }
+        />
+        <p className="border-t border-zinc-100 px-5 py-3 text-xs text-zinc-500">
+          {t('View only. Milk is recorded in Field collection; corrections after a shift is closed need supervisor approval.')}{' '}
+          <Link to="/quality" className="font-medium text-brand-700 hover:underline">
+            {t('View exceptions')}
+          </Link>
+        </p>
+      </Card>
+
+      {/* Selected farmer's deliveries */}
+      {sel && (
+        <Card className="mt-6">
+          <CardHeader
+            title={sel.name}
+            subtitle={t('{id} · {center} · {date}', { id: sel.farmerId, center: centerName(sel.centerId), date: fmtDate(date) })}
+            actions={
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSelId(null)}>
+                {t('Close')}
+              </button>
+            }
+          />
+          {sel.items.length ? (
+            <DataTable<CollectionRecord>
+              rows={sel.items}
+              rowKey={(d) => d.id}
+              columns={[
+                { key: 'time', header: t('Time'), mono: true, render: (d) => `${d.time} · ${d.shift === 'AM' ? t('Morning') : t('Evening')}` },
+                { key: 'litres', header: t('Litres'), align: 'right', mono: true, render: (d) => num(d.litres, 1) },
+                { key: 'fat', header: 'FAT', align: 'right', mono: true, render: (d) => d.fat.toFixed(2) },
+                { key: 'snf', header: 'SNF', align: 'right', mono: true, render: (d) => d.snf.toFixed(2) },
+                { key: 'temp', header: '°C', align: 'right', render: (d) => <span className={clsx('num', d.temp > 10 && 'font-semibold text-amber-700')}>{d.temp.toFixed(1)}</span> },
+                {
+                  key: 'tests',
+                  header: t('Tests'),
+                  render: (d) => (
+                    <span className="text-xs text-zinc-600">
+                      {t('Alcohol')} {d.alcohol === 'Pass' ? '✓' : '✗'} · {d.adulteration === 'None found' ? t('Clean') : t(d.adulteration)}
+                    </span>
+                  ),
+                },
+                {
+                  key: 'source',
+                  header: t('Collected at'),
+                  className: 'whitespace-normal min-w-[170px] max-w-[260px]',
+                  render: (d) =>
+                    d.source === 'Farm' ? (
+                      <div>
+                        <Badge tone="warning">{t('Farm visit')}</Badge>
+                        {d.visitReason && <div className="mt-0.5 text-xs text-zinc-600">{trVisitReason(d.visitReason, t)}</div>}
+                        {d.location && <div className="mt-0.5 line-clamp-2 text-xs text-zinc-500">{d.location}</div>}
+                      </div>
+                    ) : (
+                      <span className="text-zinc-600">{t('At center')}</span>
+                    ),
+                },
+                { key: 'result', header: t('Result'), render: (d) => <StatusBadge status={d.result} /> },
+                { key: 'value', header: t('Value'), align: 'right', mono: true, render: (d) => (d.value ? lkr(d.value) : '—') },
+                { key: 'by', header: t('Recorded by'), className: 'text-zinc-500', render: (d) => trBy(d.by, t) },
+              ]}
+            />
+          ) : (
+            <CardBody className="text-sm text-zinc-500">{t('No milk from this farmer on this day.')}</CardBody>
+          )}
+        </Card>
+      )}
     </>
   );
 }

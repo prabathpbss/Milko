@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { CheckCircle2, ScanLine, WifiOff, XCircle } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
@@ -8,7 +9,9 @@ import { Avatar } from '@/components/ui/misc';
 import { farmers } from '@/data/mock';
 import { useActiveCenters } from '@/data/masters';
 import { Badge } from '@/components/ui/Badge';
-import CollectedAt, { atCenter, collectedAtError, type CollectedAtValue } from '@/components/ui/CollectedAt';
+import CollectedAt, { atCenter, collectedAtError, formatLocation, formatReason, type CollectedAtValue } from '@/components/ui/CollectedAt';
+import { TODAY_ISO, addDelivery, useDayDeliveries } from '@/data/collection';
+import { useAuth } from '@/context/AuthContext';
 import { evaluateDelivery } from '@/lib/pricing';
 import { lkr, num } from '@/lib/format';
 import { useToast } from '@/context/ToastContext';
@@ -48,12 +51,14 @@ export default function MobileCollect() {
   const [alcohol, setAlcohol] = useState<'Pass' | 'Fail'>('Pass');
   const [adult, setAdult] = useState('None found');
   const [pending, setPending] = useState(3);
-  const [count, setCount] = useState(41);
+  const { user } = useAuth();
+  const [shift, setShift] = useState<'AM' | 'PM'>(new Date().getHours() < 12 ? 'AM' : 'PM');
   const [saved, setSaved] = useState<Saved[]>([]);
   const centers = useActiveCenters();
   const [centerId, setCenterId] = useState('CC-HNG');
   const [at, setAt] = useState<CollectedAtValue>(atCenter);
   const center = centers.find((c) => c.code === centerId) ?? centers[0];
+  const count = useDayDeliveries(TODAY_ISO, center?.code ?? '', shift).length;
 
   const farmer = farmers.find((f) => f.id === farmerId.trim().toUpperCase());
   const ev = useMemo(() => {
@@ -68,16 +73,36 @@ export default function MobileCollect() {
     if (atErr) return toast(atErr, 'error');
     const rejected = reject || ev.result === 'Rejected';
     setPending((p) => p + 1);
-    setCount((c) => c + 1);
+    const farm = at.source === 'Farm';
+    const now = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    // Goes into the center's day, so it shows in Daily collection.
+    addDelivery({
+      date: TODAY_ISO,
+      centerId: center?.code ?? '',
+      time: now,
+      shift,
+      farmerId: farmer.id,
+      farmerName: farmer.name,
+      litres: parseFloat(litres),
+      fat: parseFloat(fat),
+      snf: parseFloat(snf),
+      temp: parseFloat(temp),
+      alcohol,
+      adulteration: adult,
+      result: rejected ? 'Rejected' : ev.result,
+      by: farm ? `Farm visit · ${user?.name ?? ''}` : `Mobile · ${user?.name ?? ''}`,
+      value: rejected ? 0 : ev.value,
+      ...(farm ? { source: 'Farm' as const, location: formatLocation(at), visitReason: formatReason(at) } : { source: 'Center' as const }),
+    });
     setSaved((s) => [
       {
         id: Date.now(),
-        time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+        time: now,
         farmer: farmer.name,
         litres: parseFloat(litres),
         value: rejected ? 0 : ev.value,
         result: rejected ? 'Rejected' : ev.result,
-        farm: at.source === 'Farm',
+        farm,
       },
       ...s,
     ]);
@@ -97,7 +122,7 @@ export default function MobileCollect() {
       <PageHeader
         breadcrumb={[{ label: t("Field forms") }, { label: t("Field collection") }]}
         title={t("New delivery")}
-        description={t("{center} · Morning shift · {n} deliveries today", { center: center?.name ?? '', n: count })}
+        description={t(shift === 'AM' ? '{center} · Morning shift · {n} deliveries today' : '{center} · Evening shift · {n} deliveries today', { center: center?.name ?? '', n: count })}
         actions={
           <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800 ring-1 ring-amber-600/25">
             <WifiOff className="h-3.5 w-3.5" /> {t("Offline · {n} to upload", { n: pending })}
@@ -109,14 +134,23 @@ export default function MobileCollect() {
         <Card className="lg:col-span-3">
           <CardBody>
             <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); save(); }}>
-              <label className="block">
-                <span className="label mb-1.5 block">{t("Collection center")}</span>
-                <select className="input h-12" value={center?.code ?? ''} onChange={(e) => setCenterId(e.target.value)}>
-                  {centers.map((c) => (
-                    <option key={c.code} value={c.code}>{c.name}</option>
-                  ))}
-                </select>
-              </label>
+              <div className="grid grid-cols-[1fr_auto] gap-2 sm:gap-4">
+                <label className="block min-w-0">
+                  <span className="label mb-1.5 block">{t("Collection center")}</span>
+                  <select className="input h-12" value={center?.code ?? ''} onChange={(e) => setCenterId(e.target.value)}>
+                    {centers.map((c) => (
+                      <option key={c.code} value={c.code}>{c.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="label mb-1.5 block">{t("Shift")}</span>
+                  <select className="input h-12" value={shift} onChange={(e) => setShift(e.target.value as 'AM' | 'PM')}>
+                    <option value="AM">{t("Morning")}</option>
+                    <option value="PM">{t("Evening")}</option>
+                  </select>
+                </label>
+              </div>
 
               <CollectedAt value={at} onChange={setAt} farmAddress={farmer?.address} farmGps={farmer?.gps} large />
 
@@ -232,7 +266,11 @@ export default function MobileCollect() {
         </Card>
 
         <Card className="h-fit lg:col-span-2">
-          <CardHeader title={t("This shift")} subtitle={t("{n} saved on this device", { n: saved.length })} />
+          <CardHeader
+            title={t("This shift")}
+            subtitle={t("{n} saved on this device", { n: saved.length })}
+            actions={<Link to="/collection" className="btn btn-ghost btn-sm">{t("View day")}</Link>}
+          />
           {saved.length ? (
             <ul className="divide-y divide-zinc-100">
               {saved.map((s) => (

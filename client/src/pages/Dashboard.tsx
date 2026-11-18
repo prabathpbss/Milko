@@ -88,7 +88,7 @@ export default function Dashboard() {
             <Link to="/reports" className="btn btn-secondary">
               {t('Open reports')}
             </Link>
-            <Link to="/collection" className="btn btn-primary">
+            <Link to="/field/collect" className="btn btn-primary">
               <Milk className="h-4 w-4" /> {t('Record collection')}
             </Link>
           </>
