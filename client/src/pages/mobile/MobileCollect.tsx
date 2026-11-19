@@ -5,7 +5,7 @@ import { CheckCircle2, ScanLine, WifiOff, XCircle } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { StatusBadge } from '@/components/ui/Badge';
-import { Avatar } from '@/components/ui/misc';
+import { FarmerAvatar } from '@/components/ui/FarmerPhoto';
 import { farmers } from '@/data/mock';
 import { useActiveCenters } from '@/data/masters';
 import { Badge } from '@/components/ui/Badge';
@@ -185,7 +185,7 @@ export default function MobileCollect() {
 
               {farmer ? (
                 <div className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-                  <Avatar name={farmer.name} />
+                  <FarmerAvatar id={farmer.id} name={farmer.name} size="lg" />
                   <div className="min-w-0">
                     <p className="truncate font-semibold">{farmer.name}</p>
                     <p className="text-xs text-zinc-500">

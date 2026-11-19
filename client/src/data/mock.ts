@@ -125,6 +125,39 @@ export const farmers: Farmer[] = seeds.map((s, i) => {
 
 export const farmerById = (id?: string) => farmers.find((f) => f.id === id);
 
+/**
+ * Registration submitted from onboarding: updates the pending farmer with the same NIC or full name,
+ * or adds a new pending farmer. Returns the farmer ID. (Prototype: kept in memory.)
+ */
+export function registerFarmer(r: {
+  fullName: string; nic: string; mobile: string; centerId: string; route: string; address: string;
+  language: string; milking: number; cattle: number; expected: number; land: number; breed: string; category: string;
+}): string {
+  const name = r.fullName.trim();
+  const existing = farmers.find((f) => f.nic === r.nic.trim() || f.fullName.toLowerCase() === name.toLowerCase());
+  const c = centers.find((x) => x.id === r.centerId) ?? centers[0];
+  const parts = name.split(/\s+/);
+  const values = {
+    fullName: name,
+    name: parts.length > 1 ? `${parts[0][0]}. ${parts.slice(1).join(' ')}` : name,
+    nic: r.nic.trim(), mobile: r.mobile.trim(), centerId: c.id, center: c.name, region: c.region, route: r.route,
+    address: r.address, language: (['Sinhala', 'Tamil', 'English'].includes(r.language) ? r.language : 'Sinhala') as Farmer['language'],
+    milkingCows: r.milking || 0, totalCattle: r.cattle || 0, avgLitres: r.expected || 0, capacity: Math.round((r.expected || 0) * 1.15),
+    landAcres: r.land || 0, breed: r.breed, category: r.category as Category,
+  };
+  if (existing) {
+    Object.assign(existing, values, { name: existing.name });
+    return existing.id;
+  }
+  const max = Math.max(...farmers.map((f) => Number(f.id.slice(3)) || 0));
+  const id = `MF-${String(max + 1).padStart(6, '0')}`;
+  farmers.push({
+    ...values, id, status: 'Pending', fat: 0, snf: 0, qualityScore: 0, reliability: 0,
+    contractEnd: '—', contractStatus: 'Valid', erpVendor: null, since: 2026, balance: 0, gps: '', bank: '',
+  });
+  return id;
+}
+
 /* ───────────── Deliveries (today) ───────────── */
 
 export type CollectionSource = 'Center' | 'Farm';
@@ -565,6 +598,7 @@ export const users: AppUser[] = [
   { id: 'U-006', name: 'Ruwan Peiris', email: 'r.peiris@milco.lk', role: 'Finance officer', scope: 'All regions', signIn: 'Password', mfa: 'On', device: '—', lastActive: '3 days ago', status: 'Locked' },
   { id: 'U-007', name: 'Suresh Jaya', email: 's.jaya@milco.lk', role: 'Procurement officer', scope: 'All regions', signIn: 'SSO', mfa: 'On', device: '—', lastActive: '20 min ago', status: 'Active' },
   { id: 'U-008', name: 'Admin Service', email: 'it-admin@milco.lk', role: 'System admin', scope: 'All', signIn: 'SSO', mfa: 'On', device: '—', lastActive: 'Today', status: 'Active' },
+  { id: 'U-009', name: 'Udari', email: 'udari@milco.lk', role: 'System admin', scope: 'All regions', signIn: 'Password', mfa: 'On', device: '—', lastActive: 'Today', status: 'Active' },
 ];
 
 export const permissionModules = [

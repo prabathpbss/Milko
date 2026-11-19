@@ -8,6 +8,9 @@ import Stepper from '@/components/ui/Stepper';
 import { StatusBadge } from '@/components/ui/Badge';
 import AttachmentGrid, { type Attachment } from '@/components/ui/AttachmentGrid';
 import { KeyValue } from '@/components/ui/misc';
+import { PhotoPicker } from '@/components/ui/FarmerPhoto';
+import { setFarmerPhoto } from '@/data/farmerPhotos';
+import { registerFarmer } from '@/data/mock';
 import { centerName, useActiveCenters, useActiveRoutes } from '@/data/masters';
 import { useToast } from '@/context/ToastContext';
 import { activeTemplateNames } from '@/data/priceTemplates';
@@ -67,6 +70,7 @@ export default function Onboarding() {
   const [checks, setChecks] = useState({ duplicate: true, visit: true, bank: false, sample: false });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [photo, setPhoto] = useState<string | null>(null);
   const stepLabels = steps.map((s) => t(s));
   /** Select options: the value stays English (stored data), the visible label is translated. */
   const opts = (list: string[]) =>
@@ -82,6 +86,7 @@ export default function Onboarding() {
   const validate = () => {
     const e: Record<string, string> = {};
     if (step === 0) {
+      if (!photo) e.photo = t("Take or upload the farmer's photo.");
       if (!form.fullName.trim()) e.fullName = t('Enter the full name as on the NIC.');
       if (!/^(\d{9}[VvXx]|\d{12})$/.test(form.nic.trim())) e.nic = t('Use the old (9 digits + V) or new (12 digits) NIC format.');
       if (!form.mobile.trim()) e.mobile = t('Enter a mobile number for SMS alerts.');
@@ -95,11 +100,12 @@ export default function Onboarding() {
     if (!validate()) {
       // Move focus to the first field with an error so keyboard and screen-reader users land on it
       requestAnimationFrame(() =>
-        document
-          .querySelector('[data-field-error]')
-          ?.closest('label')
-          ?.querySelector<HTMLElement>('input, select, textarea')
-          ?.focus(),
+{
+        const el = document.querySelector('[data-field-error]');
+        const target = el?.closest('label')?.querySelector<HTMLElement>('input, select, textarea') ?? el?.closest('[data-photo]')?.querySelector<HTMLElement>('button');
+        target?.focus();
+        target?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      },
       );
       return;
     }
@@ -108,8 +114,19 @@ export default function Onboarding() {
   };
 
   const submit = () => {
+    if (!photo) {
+      setStep(0);
+      setErrors({ photo: t("Take or upload the farmer's photo.") });
+      return;
+    }
+    const id = registerFarmer({
+      fullName: form.fullName, nic: form.nic, mobile: form.mobile, centerId: form.center, route: form.route,
+      address: form.farmAddress || form.address, language: form.language, milking: Number(form.milking), cattle: Number(form.cattle),
+      expected: Number(form.expected), land: Number(form.land), breed: form.breed, category: form.category,
+    });
+    setFarmerPhoto(id, photo);
     toast(t('Farmer sent to the Regional Manager for approval'));
-    navigate('/approvals');
+    navigate(`/farmers/${id}`);
   };
 
   const docsDone = docList.filter((d) => docs[d.key]).length;
@@ -135,6 +152,22 @@ export default function Onboarding() {
           <CardHeader title={stepLabels[step]} subtitle={t('Step {n} of {total}', { n: step + 1, total: steps.length })} />
           <CardBody className="space-y-6">
             {step === 0 && (
+              <>
+              <div data-photo>
+                <span className="label mb-2 block">
+                  {t('Farmer photo')} <span className="text-red-600">*</span>
+                </span>
+                <PhotoPicker
+                  value={photo}
+                  onChange={(p) => {
+                    setPhoto(p);
+                    if (p) setErrors(({ photo: _drop, ...rest }) => rest);
+                  }}
+                  name={form.fullName}
+                  error={errors.photo}
+                  onReject={(m) => toast(m, 'error')}
+                />
+              </div>
               <FormGrid>
                 <Field label={t('Full name (as on NIC)')} error={errors.fullName} className="sm:col-span-2">
                   <input className="input" value={form.fullName} onChange={set('fullName')} />
@@ -165,6 +198,7 @@ export default function Onboarding() {
                   <input className="input" value={form.district} onChange={set('district')} />
                 </Field>
               </FormGrid>
+              </>
             )}
 
             {step === 1 && (
@@ -321,6 +355,21 @@ export default function Onboarding() {
             )}
 
             {step === 5 && (
+              <>
+              <div className="flex items-center gap-4 rounded-lg border border-zinc-200 p-4">
+                {photo ? (
+                  <img src={photo} alt={t('Photo of {name}', { name: form.fullName })} className="h-20 w-20 shrink-0 rounded-full object-cover" />
+                ) : (
+                  <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-red-400 text-center text-xs text-red-600">{t('No photo')}</span>
+                )}
+                <div className="min-w-0">
+                  <p className="font-semibold">{form.fullName}</p>
+                  <p className="text-sm text-zinc-500">{photo ? t('Photo will be shown on the farmer profile.') : t("Take or upload the farmer's photo.")}</p>
+                  <button type="button" className="btn btn-secondary btn-sm mt-2" onClick={() => setStep(0)}>
+                    {photo ? t('Change photo') : t('Add photo')}
+                  </button>
+                </div>
+              </div>
               <div className="grid gap-6 lg:grid-cols-2">
                 {[
                   { title: t('Personal'), items: [[t('Name'), form.fullName], ['NIC', form.nic], [t('Mobile'), form.mobile], [t('Language'), t(form.language)], [t('Address'), form.address]] },
@@ -334,6 +383,7 @@ export default function Onboarding() {
                   </div>
                 ))}
               </div>
+              </>
             )}
 
             <div className="flex flex-wrap justify-between gap-3 border-t border-zinc-100 pt-5">

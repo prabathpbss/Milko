@@ -11,13 +11,15 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { FileText, MapPin, MessageSquare, Pencil, Phone, Plus } from 'lucide-react';
+import { Camera, FileText, MapPin, MessageSquare, Pencil, Phone, Plus } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { Tabs } from '@/components/ui/Tabs';
 import { DataTable } from '@/components/ui/DataTable';
-import { Avatar, KeyValue, Modal } from '@/components/ui/misc';
+import { KeyValue, Modal } from '@/components/ui/misc';
+import { FarmerAvatar, PhotoPicker } from '@/components/ui/FarmerPhoto';
+import { setFarmerPhoto, useFarmerPhoto } from '@/data/farmerPhotos';
 import { Field } from '@/components/ui/Field';
 import {
   deliveries,
@@ -49,6 +51,8 @@ export default function FarmerProfile() {
   const farmer =farmerById(id) ?? farmers[0];
   const [tab, setTab] = useState<TabId>('overview');
   const [dedOpen, setDedOpen] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const photo = useFarmerPhoto(farmer.id);
   const [deductions, setDeductions] = useState(farmerDeductions);
   const disputeCount = useDisputes().filter((d) => d.farmerId === farmer.id && d.status !== 'Resolved').length;
 
@@ -93,7 +97,17 @@ export default function FarmerProfile() {
       <Card className="mb-6">
         <div className="flex flex-col gap-6 p-5 lg:flex-row lg:items-center">
           <div className="flex min-w-0 items-center gap-4 lg:w-[40%]">
-            <Avatar name={farmer.name} size="lg" />
+            <button
+              type="button"
+              onClick={() => setPhotoOpen(true)}
+              className="group relative shrink-0 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+              aria-label={photo ? t('Change photo of {name}', { name: farmer.name }) : t('Add photo of {name}', { name: farmer.name })}
+            >
+              <FarmerAvatar id={farmer.id} name={farmer.name} size="xl" />
+              <span className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-brand-600 text-[var(--brand-fg)] shadow group-hover:bg-brand-700">
+                <Camera className="h-4 w-4" />
+              </span>
+            </button>
             <div className="min-w-0">
               <div className="mb-1.5 flex flex-wrap gap-1.5">
                 <Badge tone="brand">{t(farmer.category)}</Badge>
@@ -384,6 +398,28 @@ export default function FarmerProfile() {
             <textarea className="input" rows={3} placeholder={t('Item, quantity or reason')} />
           </Field>
         </div>
+      </Modal>
+      <Modal
+        open={photoOpen}
+        onClose={() => setPhotoOpen(false)}
+        title={t('Farmer photo')}
+        footer={
+          <button type="button" className="btn btn-primary" onClick={() => setPhotoOpen(false)}>
+            {t('Done')}
+          </button>
+        }
+      >
+        {photo && <img src={photo} alt={t('Photo of {name}', { name: farmer.name })} className="mx-auto mb-5 aspect-square w-full max-w-xs rounded-xl object-cover" />}
+        <PhotoPicker
+          compact
+          value={photo}
+          name={farmer.name}
+          onChange={(p) => {
+            setFarmerPhoto(farmer.id, p);
+            toast(p ? t('Photo saved') : t('Photo removed'));
+          }}
+          onReject={(m) => toast(m, 'error')}
+        />
       </Modal>
     </>
   );

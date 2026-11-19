@@ -120,6 +120,7 @@ export const si: Record<string, string> = {
   'After 5 failed attempts the account locks for 15 minutes. Two-step verification is required for Finance and Admin roles.':
     'අසාර්ථක උත්සාහයන් 5කට පසු ගිණුම මිනිත්තු 15කට අගුළු වැටේ. මූල්‍ය සහ පරිපාලන භූමිකා සඳහා පියවර දෙකේ සත්‍යාපනය අනිවාර්ය වේ.',
   'Enter your username and password.': 'ඔබේ පරිශීලක නාමය සහ මුරපදය ඇතුළත් කරන්න.',
+  'Wrong username or password.': 'පරිශීලක නාමය හෝ මුරපදය වැරදියි.',
   'Enter a valid mobile number, for example +94 71 234 5678.': 'වලංගු ජංගම අංකයක් ඇතුළත් කරන්න, උදා: +94 71 234 5678.',
   'Enter the 6-digit code from the SMS.': 'SMS පණිවිඩයේ ඇති ඉලක්කම් 6ක කේතය ඇතුළත් කරන්න.',
 

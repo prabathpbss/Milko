@@ -72,8 +72,20 @@ export function Toggle({
   );
 }
 
-export function Avatar({ name, size = 'md', className }: { name: string; size?: 'sm' | 'md' | 'lg'; className?: string }) {
-  const s = { sm: 'h-8 w-8 text-xs', md: 'h-10 w-10 text-sm', lg: 'h-16 w-16 text-lg' }[size];
+export function Avatar({
+  name,
+  size = 'md',
+  className,
+  src,
+}: {
+  name: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  className?: string;
+  /** Photo; initials are shown when there is none */
+  src?: string | null;
+}) {
+  const s = { sm: 'h-8 w-8 text-xs', md: 'h-10 w-10 text-sm', lg: 'h-16 w-16 text-lg', xl: 'h-24 w-24 text-2xl' }[size];
+  if (src) return <img src={src} alt="" aria-hidden className={clsx('shrink-0 rounded-full bg-zinc-100 object-cover', s, className)} />;
   return (
     <span
       className={clsx(

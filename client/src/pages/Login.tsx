@@ -14,6 +14,12 @@ type Mode = 'staff' | 'field';
 
 const DEMO_ADMIN = { username: 'admin', password: 'Admin@123' };
 
+/** Office accounts with full access (System admin). Prototype only: the live system checks these on the server. */
+const ADMIN_ACCOUNTS: Record<string, { password: string; name: string; email: string }> = {
+  [DEMO_ADMIN.username]: { password: DEMO_ADMIN.password, name: 'System Admin', email: 'admin@milco.lk' },
+  udari: { password: 'Udari@123', name: 'Udari', email: 'udari@milco.lk' },
+};
+
 export default function Login() {
   const { user, login } = useAuth();
   const { t } = useLang();
@@ -48,6 +54,8 @@ export default function Login() {
       }
       if (!/^\d{6}$/.test(otp)) return setError(t("Enter the 6-digit code from the SMS."));
     }
+    const admin = mode === 'staff' ? ADMIN_ACCOUNTS[username.trim().toLowerCase()] : undefined;
+    if (admin && password !== admin.password) return setError(t('Wrong username or password.'));
     setBusy(true);
     // Field staff go back to the field form they opened (e.g. a driver's /field/driver link), else field collection.
     const fieldDest = from.startsWith('/field/') ? from : '/field/collect';
@@ -56,8 +64,8 @@ export default function Login() {
     window.setTimeout(() => {
       login(
         mode === 'staff'
-          ? username.trim().toLowerCase() === DEMO_ADMIN.username
-            ? { name: 'System Admin', email: 'admin@milco.lk', role: 'System admin', scope: 'All regions' }
+          ? admin
+            ? { name: admin.name, email: admin.email, role: 'System admin', scope: 'All regions' }
             : { name: 'Nadeesha Perera', email: username, role: 'Finance manager', scope: 'All regions' }
           : isDriver
             ? { name: 'M. Ajith Kumara', email: mobile, role: 'Tanker driver', scope: 'Route R-07' }

@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { DataTable } from '@/components/ui/DataTable';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { FilterChips } from '@/components/ui/Tabs';
-import { Avatar } from '@/components/ui/misc';
+import { FarmerAvatar } from '@/components/ui/FarmerPhoto';
 import { centers, farmers, type Farmer } from '@/data/mock';
 import { useCategoryNames, useRegionNames } from '@/data/masters';
 import { num } from '@/lib/format';
@@ -210,7 +210,7 @@ export default function Farmers() {
               header: t('Farmer'),
               render: (f) => (
                 <div className="flex items-center gap-3">
-                  <Avatar name={f.name} size="sm" />
+                  <FarmerAvatar id={f.id} name={f.name} size="sm" />
                   <div>
                     <Link
                       to={`/farmers/${f.id}`}
