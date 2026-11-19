@@ -117,6 +117,7 @@ export const si: Record<string, string> = {
   'Sign in with company SSO (Microsoft)': 'ආයතනික ගිණුම (Microsoft SSO) මඟින් පිවිසෙන්න',
   'Use a different number': 'වෙනත් අංකයක් භාවිත කරන්න',
   'Demo admin:': 'පරීක්ෂණ පරිපාලක:',
+  'Demo admin account (full access). Click to fill it in:': 'පරීක්ෂණ පරිපාලක ගිණුම (සම්පූර්ණ ප්‍රවේශය). පුරවීමට ක්ලික් කරන්න:',
   'After 5 failed attempts the account locks for 15 minutes. Two-step verification is required for Finance and Admin roles.':
     'අසාර්ථක උත්සාහයන් 5කට පසු ගිණුම මිනිත්තු 15කට අගුළු වැටේ. මූල්‍ය සහ පරිපාලන භූමිකා සඳහා පියවර දෙකේ සත්‍යාපනය අනිවාර්ය වේ.',
   'Enter your username and password.': 'ඔබේ පරිශීලක නාමය සහ මුරපදය ඇතුළත් කරන්න.',

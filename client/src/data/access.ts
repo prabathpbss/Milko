@@ -87,7 +87,7 @@ const r = (x: Omit<RoleMaster, 'perms' | 'twoStep' | 'bindDevice' | 'system' | '
 });
 
 export const roleStore = createStore<RoleMaster[]>([
-  r({ code: 'ADMIN', name: 'System admin', description: 'IT administrators — users, settings and ERP connections', levels: ['Company'], approvalMode: 'None', approvalLimit: 0, signIn: 'SSO', users: 3, system: true }),
+  r({ code: 'ADMIN', name: 'System admin', description: 'IT administrators — users, settings and ERP connections', levels: ['Company'], approvalMode: 'None', approvalLimit: 0, signIn: 'SSO', users: 1, system: true }),
   r({ code: 'GM', name: 'General manager', description: 'Final approver for prices and large payment runs', levels: ['Company'], approvalMode: 'Unlimited', approvalLimit: 0, signIn: 'SSO', users: 2 }),
   r({ code: 'FIN-MGR', name: 'Finance manager', description: 'Approves payment runs, deductions and advances', levels: ['Company', 'Region'], approvalMode: 'Limit', approvalLimit: 250_000_000, signIn: 'SSO', users: 4 }),
   r({

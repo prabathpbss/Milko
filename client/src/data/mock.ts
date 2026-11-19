@@ -597,8 +597,7 @@ export const users: AppUser[] = [
   { id: 'U-005', name: 'Lakmini Silva', email: 'l.silva@milco.lk', role: 'QA officer', scope: 'North Central', signIn: 'Password', mfa: 'Off', device: '—', lastActive: 'Yesterday', status: 'Invited' },
   { id: 'U-006', name: 'Ruwan Peiris', email: 'r.peiris@milco.lk', role: 'Finance officer', scope: 'All regions', signIn: 'Password', mfa: 'On', device: '—', lastActive: '3 days ago', status: 'Locked' },
   { id: 'U-007', name: 'Suresh Jaya', email: 's.jaya@milco.lk', role: 'Procurement officer', scope: 'All regions', signIn: 'SSO', mfa: 'On', device: '—', lastActive: '20 min ago', status: 'Active' },
-  { id: 'U-008', name: 'Admin Service', email: 'it-admin@milco.lk', role: 'System admin', scope: 'All', signIn: 'SSO', mfa: 'On', device: '—', lastActive: 'Today', status: 'Active' },
-  { id: 'U-009', name: 'Udari', email: 'udari@milco.lk', role: 'System admin', scope: 'All regions', signIn: 'Password', mfa: 'On', device: '—', lastActive: 'Today', status: 'Active' },
+  { id: 'U-008', name: 'Udari', email: 'udari@milco.lk', role: 'System admin', scope: 'All regions', signIn: 'Password', mfa: 'On', device: '—', lastActive: 'Today', status: 'Active' },
 ];
 
 export const permissionModules = [
@@ -617,7 +616,7 @@ const matrix = (rows: string[]): PermissionMatrix =>
   );
 
 export const roles: { name: string; users: number; scope: string; limit: string; perms: PermissionMatrix }[] = [
-  { name: 'System admin', users: 3, scope: 'All', limit: '—', perms: matrix(Array(11).fill('111101')) },
+  { name: 'System admin', users: 1, scope: 'All', limit: '—', perms: matrix(Array(11).fill('111101')) },
   { name: 'General manager', users: 2, scope: 'All regions', limit: 'No limit', perms: matrix(Array(11).fill('100011')) },
   { name: 'Finance manager', users: 4, scope: 'All regions', limit: 'Rs 250,000,000', perms: matrix(['100001', '100011', '100001', '100001', '100001', '111011', '111011', '111011', '100001', '100000', '000000']) },
   { name: 'Regional manager', users: 9, scope: 'Own region', limit: 'Rs 5,000,000', perms: matrix(['111011', '111011', '111011', '111001', '111011', '111011', '100011', '111011', '100001', '000000', '000000']) },

@@ -12,12 +12,11 @@ import { useLang } from "@/i18n/LanguageContext";
 
 type Mode = 'staff' | 'field';
 
-const DEMO_ADMIN = { username: 'admin', password: 'Admin@123' };
+const DEMO_ADMIN = { username: 'udari', password: 'Udari@123' };
 
 /** Office accounts with full access (System admin). Prototype only: the live system checks these on the server. */
 const ADMIN_ACCOUNTS: Record<string, { password: string; name: string; email: string }> = {
-  [DEMO_ADMIN.username]: { password: DEMO_ADMIN.password, name: 'System Admin', email: 'admin@milco.lk' },
-  udari: { password: 'Udari@123', name: 'Udari', email: 'udari@milco.lk' },
+  [DEMO_ADMIN.username]: { password: DEMO_ADMIN.password, name: 'Udari', email: 'udari@milco.lk' },
 };
 
 export default function Login() {
@@ -230,10 +229,27 @@ export default function Login() {
           </form>
 
           {mode === 'staff' && (
-            <p className="mt-6 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
-              {t("Demo admin:")} <span className="num font-medium text-zinc-900">{DEMO_ADMIN.username}</span> /{' '}
-              <span className="num font-medium text-zinc-900">{DEMO_ADMIN.password}</span>
-            </p>
+            <div className="mt-6 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+              <p className="mb-1">{t('Demo admin account (full access). Click to fill it in:')}</p>
+              <ul className="space-y-0.5">
+                {Object.entries(ADMIN_ACCOUNTS).map(([name, a]) => (
+                  <li key={name}>
+                    <button
+                      type="button"
+                      className="rounded px-1 py-0.5 text-left hover:bg-zinc-200"
+                      onClick={() => {
+                        setUsername(name);
+                        setPassword(a.password);
+                        setError('');
+                      }}
+                    >
+                      <span className="text-zinc-500">{a.name}:</span> <span className="num font-medium text-zinc-900">{name}</span> /{' '}
+                      <span className="num font-medium text-zinc-900">{a.password}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
 
           <p className="mt-8 text-xs leading-relaxed text-zinc-500">
